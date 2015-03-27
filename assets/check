@@ -1,0 +1,42 @@
+#!/bin/sh
+# vim: set ft=sh
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+# for jq
+PATH=/usr/local/bin:$PATH
+
+payload=$(mktemp $TMPDIR/bosh-io-stemcell-resource-request.XXXXXX)
+
+cat > $payload <&0
+
+name=$(jq -r '.source.name // ""' < $payload)
+current_version=$(jq -r '.version.version // ""' < $payload)
+
+if [ -z "$name" ]; then
+  echo "must specify source name"
+  exit 1
+fi
+
+stemcells=$(mktemp $TMPDIR/bosh-io-stemcell-versions.XXXXXX)
+
+curl --retry 5 -s -f http://bosh.io/api/v1/stemcells/$name -o $stemcells
+
+last_idx=0
+if [ -z "$current_version" ]; then
+  last_idx=1
+else
+  existing_index=$(jq 'map(.version) | index($v)' --arg v $current_version < $stemcells)
+
+  if [ "$existing_index" = "null" ]; then
+    echo "version $current_version not found; using latest..."
+    last_idx=1
+  else
+    last_idx=$existing_index
+  fi
+fi
+
+jq ".[0:$last_idx] | map({version}) | reverse" < $stemcells >&3
