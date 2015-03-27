@@ -39,7 +39,7 @@ mkdir -p $destination
 stemcells=$(mktemp $TMPDIR/bosh-io-stemcell-versions.XXXXXX)
 stemcell_version=$(mktemp $TMPDIR/bosh-io-stemcell-version.XXXXXX)
 
-curl --retry 5 -s -f http://bosh.io/api/v1/stemcells/$name -o $stemcells
+curl --retry 5 -f http://bosh.io/api/v1/stemcells/$name -o $stemcells
 
 jq 'map(select(.version == $version))[0] | .light // .regular' \
   --arg version $version \
