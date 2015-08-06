@@ -23,7 +23,7 @@ fi
 
 stemcells=$(mktemp $TMPDIR/bosh-io-stemcell-versions.XXXXXX)
 
-curl --retry 5 -s -f http://bosh.io/api/v1/stemcells/$name -o $stemcells
+curl --retry 5 -L -s -f https://bosh.io/api/v1/stemcells/$name -o $stemcells
 
 last_idx=0
 if [ -z "$current_version" ]; then
