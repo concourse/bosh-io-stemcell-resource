@@ -27,7 +27,7 @@ Detects new versions of the stemcell that have been published to bosh.io.
 
 ### `in`: Fetch a version of the stemcell.
 
-Fetches a given stemcell, placing the following in the destination:
+Fetches a given stemcell, placing the following files in the destination:
 
 * `version`: The version number of the stemcell.
 * `url`: A URL that can be used to download the stemcell tarball.
