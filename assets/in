@@ -6,6 +6,8 @@ set -e
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
 
+source $(dirname $0)/common.sh
+
 # for jq
 PATH=/usr/local/bin:$PATH
 
@@ -47,7 +49,8 @@ jq 'map(select(.version == $version))[0] | .light // .regular' \
   > $stemcell_version
 
 url=$(jq -r .url < $stemcell_version)
-md5=$(jq -r .md5 < $stemcell_version)
+md5=$(jq -r '.md5 // ""' < $stemcell_version)
+sha1=$(jq -r '.sha1 // ""' < $stemcell_version)
 
 if [ "$url" = "null" ]; then
   echo "version $version not found; aborting"
@@ -58,12 +61,7 @@ echo "$url" > $destination/url
 echo "$version" > $destination/version
 
 if [ "$fetch_tarball" = "true" ]; then
-  curl --retry 5 -s -f "$url" -o $destination/stemcell.tgz
-
-  fetched_sum=$(md5sum $destination/stemcell.tgz | awk '{print $1}')
-
-  if [ "$fetched_sum" != "$md5" ]; then
-    echo "checksum mismatch: want $md5, got $fetched_sum"
+  if ! download_tarball "$url" "$destination" "$md5" "$sha1"; then
     exit 1
   fi
 fi
@@ -74,6 +72,7 @@ jq -n '{
   },
   metadata: [
     {name: "url", value: $url},
-    {name: "md5", value: $md5}
+    {name: "md5", value: $md5},
+    {name: "sha1", value: $sha1}
   ]
-}' --arg version "$version" --arg url "$url" --arg md5 "$md5" >&3
+}' --arg version "$version" --arg url "$url" --arg md5 "$md5" --arg sha1 "$sha1" >&3
