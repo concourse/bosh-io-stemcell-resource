@@ -1,0 +1,8 @@
+platform: linux
+image: docker:///concourse/archive-resource-ci
+
+inputs:
+- name: bosh-io-stemcell-resource
+
+run:
+  path: bosh-io-stemcell-resource/ci/test
