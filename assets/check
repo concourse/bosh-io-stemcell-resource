@@ -35,7 +35,7 @@ else
     echo "version $current_version not found; using latest..."
     last_idx=1
   else
-    last_idx=$existing_index
+    last_idx=$existing_index+1
   fi
 fi
 
