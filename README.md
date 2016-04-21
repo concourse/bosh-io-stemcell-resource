@@ -22,7 +22,7 @@ resources:
 
 ### `check`: Check for new versions of the stemcell.
 
-Detects new versions of the stemcell that have been published to bosh.io.
+Detects new versions of the stemcell that have been published to [bosh.io](https://bosh.io). If no version is specified, `check` returns the latest version, otherwise `check` returns all versions from the version specified on.
 
 
 ### `in`: Fetch a version of the stemcell.
