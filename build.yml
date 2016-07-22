@@ -1,5 +1,9 @@
+---
 platform: linux
-image: docker:///concourse/archive-resource-ci
+
+image_resource:
+  type: docker-image
+  source: {repository: concourse/archive-resource-ci}
 
 inputs:
 - name: bosh-io-stemcell-resource
