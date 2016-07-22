@@ -1,12 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 # vim: set ft=sh
 
 set -e
 
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
-
-source $(dirname $0)/common.sh
 
 payload=$(mktemp $TMPDIR/bosh-io-stemcell-resource-request.XXXXXX)
 
@@ -35,19 +33,19 @@ fi
 
 mkdir -p $destination
 
-stemcells=$(mktemp $TMPDIR/bosh-io-stemcell-versions.XXXXXX)
-stemcell_version=$(mktemp $TMPDIR/bosh-io-stemcell-version.XXXXXX)
+stemcell_data=$(mktemp $TMPDIR/bosh-io-stemcell-version.XXXXXX)
 
-curl --retry 5 -f http://bosh.io/api/v1/stemcells/$name -o $stemcells
+curl \
+  --silent \
+  --retry 5 \
+  --fail \
+  --location \
+  "http://bosh.io/api/v1/stemcells/$name" | \
+  jq 'map(select(.version == $version))[0] | .light // .regular' --arg version "$version" > \
+  $stemcell_data
 
-jq 'map(select(.version == $version))[0] | .light // .regular' \
-  --arg version $version \
-  < $stemcells \
-  > $stemcell_version
-
-url=$(jq -r .url < $stemcell_version)
-md5=$(jq -r '.md5 // ""' < $stemcell_version)
-sha1=$(jq -r '.sha1 // ""' < $stemcell_version)
+url=$(jq -r .url < $stemcell_data)
+sha1=$(jq -r .sha1 < $stemcell_data)
 
 if [ "$url" = "null" ]; then
   echo "version $version not found; aborting"
@@ -56,20 +54,19 @@ fi
 
 echo "$url" > $destination/url
 echo "$version" > $destination/version
+echo "$sha1" > $destination/sha1
 
 if [ "$fetch_tarball" = "true" ]; then
-  if ! download_tarball "$url" "$destination/stemcell.tgz" "$md5" "$sha1"; then
-    exit 1
-  fi
+  pushd $destination >/dev/null
+    curl --retry 5 --fail -L "$url" -o stemcell.tgz
+    echo "$sha1  stemcell.tgz" | sha1sum -c -
+  popd >/dev/null
 fi
 
 jq -n '{
-  version: {
-    version: $version
-  },
+  version: { version: $version },
   metadata: [
-    {name: "url", value: $url},
-    {name: "md5", value: $md5},
-    {name: "sha1", value: $sha1}
+    { name: "url", value: $url },
+    { name: "sha1", value: $sha1 }
   ]
-}' --arg version "$version" --arg url "$url" --arg md5 "$md5" --arg sha1 "$sha1" >&3
+}' --arg version "$version" --arg url "$url" --arg sha1 "$sha1" >&3

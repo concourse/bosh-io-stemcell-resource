@@ -1,9 +1,0 @@
-#!/bin/sh
-
-set -e
-
-cd bosh-io-stemcell-resource
-
-export TMPDIR=/tmp
-
-env TERM=xterm bats tests/
