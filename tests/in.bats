@@ -9,7 +9,7 @@ load assertions
   md5="5c51e558b19f4ab59399bfafcbea7848"
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5"
   assert_success
 
   [ -f $directory/stemcell.tgz ]
@@ -22,7 +22,7 @@ load assertions
   md5="this-is-not-the-correct-hash"
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5"
   assert_failure
 
   rm -r $directory
@@ -33,7 +33,7 @@ load assertions
   md5=""
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5"
   assert_success
 
   [ -f $directory/stemcell.tgz ]
@@ -47,7 +47,7 @@ load assertions
   sha1="8a0958a932d9b63e813d1307d3211b17ecf451e5"
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5" "$sha1"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5" "$sha1"
   assert_success
 
   [ -f $directory/stemcell.tgz ]
@@ -61,7 +61,7 @@ load assertions
   sha1="this-is-the-wrong-hash"
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5" "$sha1"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5" "$sha1"
   assert_failure
 
   rm -r $directory
@@ -73,7 +73,7 @@ load assertions
   sha1="8a0958a932d9b63e813d1307d3211b17ecf451e5"
   directory=$(mktemp -d $TMPDIR/bosh-io-stemcell-resource.XXXXXX)
 
-  run download_tarball "$url" "$directory" "$md5" "$sha1"
+  run download_tarball "$url" "$directory/stemcell.tgz" "$md5" "$sha1"
   assert_success
 
   rm -r $directory

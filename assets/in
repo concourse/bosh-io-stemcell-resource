@@ -61,7 +61,7 @@ echo "$url" > $destination/url
 echo "$version" > $destination/version
 
 if [ "$fetch_tarball" = "true" ]; then
-  if ! download_tarball "$url" "$destination" "$md5" "$sha1"; then
+  if ! download_tarball "$url" "$destination/stemcell.tgz" "$md5" "$sha1"; then
     exit 1
   fi
 fi
