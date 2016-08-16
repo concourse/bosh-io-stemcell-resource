@@ -11,6 +11,7 @@ payload=$(mktemp $TMPDIR/bosh-io-stemcell-resource-request.XXXXXX)
 cat > $payload <&0
 
 name=$(jq -r '.source.name // ""' < $payload)
+force_heavy=$(jq -r '.source.force_heavy // false' < $payload)
 version=$(jq -r '.version.version // ""' < $payload)
 fetch_tarball=$(jq -r '.params.tarball != false' < $payload)
 
@@ -40,9 +41,15 @@ curl \
   --retry 5 \
   --fail \
   --location \
-  "http://bosh.io/api/v1/stemcells/$name" | \
-  jq 'map(select(.version == $version))[0] | .light // .regular' --arg version "$version" > \
-  $stemcell_data
+  "http://bosh.io/api/v1/stemcells/$name" > $stemcell_data
+
+supports_light=$(jq 'any(select(.light))' < $stemcell_data)
+if [ "$supports_light" == 'true' ] && [ "$force_heavy" != 'true' ]; then
+  jq 'map(select(.version == $version))[0].light' --arg version "$version" < $stemcell_data > $stemcell_data.new
+else
+  jq 'map(select(.version == $version))[0].regular' --arg version "$version" < $stemcell_data > $stemcell_data.new
+fi
+mv -f $stemcell_data.new $stemcell_data
 
 url=$(jq -r .url < $stemcell_data)
 sha1=$(jq -r .sha1 < $stemcell_data)
