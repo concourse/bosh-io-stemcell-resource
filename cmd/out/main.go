@@ -1,0 +1,4 @@
+package out
+
+func main() {
+}
