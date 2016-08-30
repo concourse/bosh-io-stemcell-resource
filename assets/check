@@ -29,8 +29,6 @@ fi
 stemcells=$(mktemp $TMPDIR/bosh-io-stemcell-versions.XXXXXX)
 curl --retry 5 -L -s -f https://bosh.io/api/v1/stemcells/$name | jq --arg regex "$version_regex" '[.[] | select(.version | test($regex))]' > $stemcells
 
-cat $stemcells
-
 last_idx=0
 if [ -z "$current_version" ]; then
   last_idx=1
@@ -45,5 +43,4 @@ else
   fi
 fi
 
-echo $last_idx
 jq ".[0:$last_idx] | map({version}) | reverse" < $stemcells >&3
