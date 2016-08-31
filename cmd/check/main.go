@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/concourse/bosh-io-stemcell-resource/boshio"
+	"github.com/concourse/bosh-io-stemcell-resource/versions"
 )
 
 type concourseCheck struct {
@@ -13,21 +16,9 @@ type concourseCheck struct {
 		Name string
 	}
 	Version struct {
+		Version string
 	}
 }
-
-type stemcell struct {
-	Name    string
-	Version string
-	Details struct {
-		URL  string
-		Size int64
-		MD5  string
-		SHA1 string
-	} `json:"light"`
-}
-
-type version map[string]string
 
 func main() {
 	rawJSON, err := ioutil.ReadAll(os.Stdin)
@@ -55,18 +46,20 @@ func main() {
 		panic(err)
 	}
 
-	var stemcells []stemcell
+	var stemcells []boshio.Stemcell
 	err = json.Unmarshal(bodyBytes, &stemcells)
 	if err != nil {
 		panic(err)
 	}
 
-	var versions []version
-	for _, s := range stemcells {
-		versions = append(versions, version{"version": s.Version})
+	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)
+
+	filteredVersions, err := filter.Versions()
+	if err != nil {
+		panic(err)
 	}
 
-	content, err := json.Marshal(versions)
+	content, err := json.Marshal(filteredVersions)
 	if err != nil {
 		panic(err)
 	}
