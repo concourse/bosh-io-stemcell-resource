@@ -32,6 +32,7 @@ const specificVersionRequest = `
 var _ = Describe("check", func() {
 	Context("when no version is specified", func() {
 		var command *exec.Cmd
+
 		BeforeEach(func() {
 			command = exec.Command(boshioCheck)
 			command.Stdin = bytes.NewBufferString(noVersionRequest)
@@ -49,6 +50,7 @@ var _ = Describe("check", func() {
 
 	Context("when a version is specified", func() {
 		var command *exec.Cmd
+
 		BeforeEach(func() {
 			command = exec.Command(boshioCheck)
 			command.Stdin = bytes.NewBufferString(specificVersionRequest)

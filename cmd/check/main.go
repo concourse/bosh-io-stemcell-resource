@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
@@ -32,25 +31,8 @@ func main() {
 		panic(err)
 	}
 
-	resp, err := http.Get(fmt.Sprintf("https://bosh.io/api/v1/stemcells/%s", checkRequest.Source.Name))
-	if err != nil {
-		panic(err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		panic("wrong code")
-	}
-
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	var stemcells []boshio.Stemcell
-	err = json.Unmarshal(bodyBytes, &stemcells)
-	if err != nil {
-		panic(err)
-	}
+	client := boshio.NewClient()
+	stemcells := client.GetStemcells(checkRequest.Source.Name)
 
 	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)
 
