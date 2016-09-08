@@ -3,10 +3,11 @@ package boshio
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,35 +81,46 @@ func (c *Client) GetStemcells(name string) []Stemcell {
 	return stemcells
 }
 
-func (c *Client) WriteMetadata(name string, version string, locations map[string]*os.File) error {
-	for _, stemcell := range c.GetStemcells(name) {
-		if stemcell.Version == version {
-			_, err := locations["url"].Write([]byte(stemcell.Details().URL))
-			if err != nil {
-				return err
-			}
+func (c *Client) WriteMetadata(name string, version string, metadataKey string, metadataFile io.Writer) error {
+	var stemcell Stemcell
 
-			_, err = locations["sha1"].Write([]byte(stemcell.Details().SHA1))
-			if err != nil {
-				return err
-			}
-
-			_, err = locations["version"].Write([]byte(stemcell.Version))
-			if err != nil {
-				return err
-			}
-
+	for _, s := range c.GetStemcells(name) {
+		if s.Version == version {
+			stemcell = s
 			break
 		}
 	}
+
+	if stemcell.Name == "" {
+		return fmt.Errorf("Failed to find stemcell: %q", name)
+	}
+
+	switch metadataKey {
+	case "url":
+		_, err := metadataFile.Write([]byte(stemcell.Details().URL))
+		if err != nil {
+			return err
+		}
+	case "sha1":
+		_, err := metadataFile.Write([]byte(stemcell.Details().SHA1))
+		if err != nil {
+			return err
+		}
+	case "version":
+		_, err := metadataFile.Write([]byte(stemcell.Version))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (c *Client) DownloadStemcell(name string, version string, location *os.File) error {
+func (c *Client) DownloadStemcell(name string, version string, location string, preserveFileName bool) error {
 	stemcellURL := c.Host + c.stemcellDownloadPath
 	resp, err := http.Head(fmt.Sprintf(stemcellURL, name, version))
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	stemcellURL = resp.Request.URL.String()
@@ -116,10 +128,14 @@ func (c *Client) DownloadStemcell(name string, version string, location *os.File
 	ranger := content.NewRanger(routines)
 	ranges, err := ranger.BuildRange(resp.ContentLength)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
-	log.Printf("Downloading stemcell from '%s'...\n", stemcellURL)
+	stemcell, err := os.Create(filepath.Join(location, "stemcell.tgz"))
+	if err != nil {
+		panic(err)
+	}
+	defer stemcell.Close()
 
 	var wg sync.WaitGroup
 	bar := pb.New(int(resp.ContentLength))
@@ -131,7 +147,7 @@ func (c *Client) DownloadStemcell(name string, version string, location *os.File
 			defer wg.Done()
 			req, err := http.NewRequest("GET", stemcellURL, nil)
 			if err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 
 			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
@@ -139,24 +155,24 @@ func (c *Client) DownloadStemcell(name string, version string, location *os.File
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 
 			defer resp.Body.Close()
 
 			respBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 
 			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
 			if err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 
-			bytesWritten, err := location.WriteAt(respBytes, int64(offset))
+			bytesWritten, err := stemcell.WriteAt(respBytes, int64(offset))
 			if err != nil {
-				log.Fatalln(err)
+				panic(err)
 			}
 
 			bar.Add(bytesWritten)

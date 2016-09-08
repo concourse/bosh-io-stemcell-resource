@@ -14,7 +14,8 @@ type concourseIn struct {
 		Name string
 	}
 	Params struct {
-		Tarball bool
+		Tarball          bool
+		PreserveFileName bool
 	}
 	Version struct {
 		Version string
@@ -39,33 +40,23 @@ func main() {
 
 	client := boshio.NewClient()
 
-	dataLocations := map[string]*os.File{
-		"version": nil,
-		"sha1":    nil,
-		"url":     nil,
-	}
+	dataLocations := []string{"version", "sha1", "url"}
 
-	if inRequest.Params.Tarball {
-		dataLocations["stemcell.tgz"] = nil
-	}
-
-	for key := range dataLocations {
-		fileLocation, err := os.Create(filepath.Join(location, key))
+	for _, name := range dataLocations {
+		fileLocation, err := os.Create(filepath.Join(location, name))
 		if err != nil {
 			panic(err)
 		}
 		defer fileLocation.Close()
 
-		dataLocations[key] = fileLocation
-	}
-
-	err = client.WriteMetadata(inRequest.Source.Name, inRequest.Version.Version, dataLocations)
-	if err != nil {
-		panic(err)
+		err = client.WriteMetadata(inRequest.Source.Name, inRequest.Version.Version, name, fileLocation)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if inRequest.Params.Tarball {
-		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, dataLocations["stemcell.tgz"])
+		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, location, inRequest.Params.PreserveFileName)
 		if err != nil {
 			panic(err)
 		}

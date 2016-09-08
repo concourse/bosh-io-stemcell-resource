@@ -3,6 +3,7 @@ package boshio_test
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 
@@ -43,85 +44,86 @@ var _ = Describe("Boshio", func() {
 	})
 
 	Describe("WriteMetadata", func() {
-		var (
-			dataLocations map[string]*os.File
-		)
+		var fileLocation *os.File
 
 		BeforeEach(func() {
-			dataLocations = map[string]*os.File{
-				"version": nil,
-				"sha1":    nil,
-				"url":     nil,
-			}
-
-			for key := range dataLocations {
-				fileLocation, err := ioutil.TempFile("", "")
-				Expect(err).NotTo(HaveOccurred())
-
-				dataLocations[key] = fileLocation
-			}
+			var err error
+			fileLocation, err = ioutil.TempFile("", "")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		AfterEach(func() {
-			for _, file := range dataLocations {
-				err := os.Remove(file.Name())
-				Expect(err).NotTo(HaveOccurred())
-			}
+			err := os.Remove(fileLocation.Name())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("writes the url, sha1, and version to disk", func() {
-			err := client.WriteMetadata("some-light-stemcell", "some version", dataLocations)
+		It("writes the url to disk", func() {
+			err := client.WriteMetadata("some-light-stemcell", "some version", "url", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
-			url, err := ioutil.ReadFile(dataLocations["url"].Name())
+			url, err := ioutil.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(url)).To(Equal("http://example.com"))
+		})
 
-			sha1, err := ioutil.ReadFile(dataLocations["sha1"].Name())
+		It("writes the sha1 to disk", func() {
+			err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fileLocation)
+			Expect(err).NotTo(HaveOccurred())
+
+			sha1, err := ioutil.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha1)).To(Equal("2222"))
+		})
 
-			version, err := ioutil.ReadFile(dataLocations["version"].Name())
+		It("writes the version to disk", func() {
+			err := client.WriteMetadata("some-light-stemcell", "some version", "version", fileLocation)
+			Expect(err).NotTo(HaveOccurred())
+
+			version, err := ioutil.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(version)).To(Equal("some version"))
 		})
 
 		Context("when an error occurs", func() {
-			// Context("when url writer fails", func() {
-			// 	It("returns an error", func() {
-			// 		dataLocations["url"] =
-			// 		err := client.WriteMetadata("some-light-stemcell", "some version", dataLocations)
-			// 		Expect(err).To(MatchError("explosions"))
-			// 	})
-			// })
+			Context("when the stemcell cannot be found", func() {
+				It("returns an error", func() {
+					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", noopWriter{})
+					Expect(err).To(MatchError(`Failed to find stemcell: "some-heavy-stemcell"`))
+				})
+			})
 
-			// Context("when sha1 writer fails", func() {
-			// 	It("returns an error", func() {
-			// 		dataLocations["sha1"] = noopWriter{}
-			// 		err := client.WriteMetadata("some-light-stemcell", "some version", dataLocations)
-			// 		Expect(err).To(MatchError("explosions"))
-			// 	})
-			// })
+			Context("when url writer fails", func() {
+				It("returns an error", func() {
+					err := client.WriteMetadata("some-light-stemcell", "some version", "url", noopWriter{})
+					Expect(err).To(MatchError("explosions"))
+				})
+			})
 
-			// Context("when version writer fails", func() {
-			// 	It("returns an error", func() {
-			// 		dataLocations["version"] = noopWriter{}
-			// 		err := client.WriteMetadata("some-light-stemcell", "some version", dataLocations)
-			// 		Expect(err).To(MatchError("explosions"))
-			// 	})
-			// })
+			Context("when sha1 writer fails", func() {
+				It("returns an error", func() {
+					err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", noopWriter{})
+					Expect(err).To(MatchError("explosions"))
+				})
+			})
+
+			Context("when version writer fails", func() {
+				It("returns an error", func() {
+					err := client.WriteMetadata("some-light-stemcell", "some version", "version", noopWriter{})
+					Expect(err).To(MatchError("explosions"))
+				})
+			})
 		})
 	})
 
 	Describe("DownloadStemcell", func() {
 		It("writes the stemcell to the provided location", func() {
-			file, err := ioutil.TempFile("", "")
+			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DownloadStemcell("different-stemcell", "2222", file)
+			err = client.DownloadStemcell("different-stemcell", "2222", location, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			content, err := ioutil.ReadFile(file.Name())
+			content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
