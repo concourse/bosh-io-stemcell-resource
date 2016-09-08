@@ -128,5 +128,18 @@ var _ = Describe("Boshio", func() {
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
 		})
+
+		It("uses the stemcell filename from bosh.io when the preserveFileName paream is set to true", func() {
+			location, err := ioutil.TempDir("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			content, err := ioutil.ReadFile(filepath.Join(location, "light-different-stemcell.tgz"))
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+		})
 	})
 })

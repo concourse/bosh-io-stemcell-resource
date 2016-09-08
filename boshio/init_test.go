@@ -35,6 +35,12 @@ var _ = BeforeEach(func() {
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
 		case "/d/stemcells/different-stemcell":
+			magicURL := req.URL
+			magicURL.Path = "/path/to/light-different-stemcell.tgz"
+
+			w.Header().Add("Location", magicURL.String())
+			w.WriteHeader(http.StatusMovedPermanently)
+		case "/path/to/light-different-stemcell.tgz":
 			if req.Method == "HEAD" {
 				w.Header().Add("Content-Length", "100")
 				return

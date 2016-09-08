@@ -131,7 +131,12 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 		panic(err)
 	}
 
-	stemcell, err := os.Create(filepath.Join(location, "stemcell.tgz"))
+	stemcellFileName := "stemcell.tgz"
+	if preserveFileName {
+		stemcellFileName = filepath.Base(resp.Request.URL.Path)
+	}
+
+	stemcell, err := os.Create(filepath.Join(location, stemcellFileName))
 	if err != nil {
 		panic(err)
 	}
