@@ -12,7 +12,6 @@ resources:
     name: bosh-aws-xen-ubuntu-trusty-go_agent
 ```
 
-
 ## Source Configuration
 
 * `name`: *Required.* The name of the stemcell.
@@ -31,6 +30,7 @@ Fetches a given stemcell, placing the following files in the destination:
 
 * `version`: The version number of the stemcell.
 * `url`: A URL that can be used to download the stemcell tarball.
+* `sha1`: The SHA1 of the stemcell
 * `stemcell.tgz`: The stemcell tarball, if the `tarball` param is `true`.
 
 #### Parameters

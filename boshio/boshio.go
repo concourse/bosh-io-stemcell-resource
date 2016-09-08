@@ -4,8 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+
+	"gopkg.in/cheggaaa/pb.v1"
+
+	"github.com/concourse/bosh-io-stemcell-resource/content"
 )
+
+const routines = 10
 
 type Stemcell struct {
 	Name    string
@@ -67,4 +78,93 @@ func (c *Client) GetStemcells(name string) []Stemcell {
 	}
 
 	return stemcells
+}
+
+func (c *Client) WriteMetadata(name string, version string, locations map[string]*os.File) error {
+	for _, stemcell := range c.GetStemcells(name) {
+		if stemcell.Version == version {
+			_, err := locations["url"].Write([]byte(stemcell.Details().URL))
+			if err != nil {
+				return err
+			}
+
+			_, err = locations["sha1"].Write([]byte(stemcell.Details().SHA1))
+			if err != nil {
+				return err
+			}
+
+			_, err = locations["version"].Write([]byte(stemcell.Version))
+			if err != nil {
+				return err
+			}
+
+			break
+		}
+	}
+	return nil
+}
+
+func (c *Client) DownloadStemcell(name string, version string, location *os.File) error {
+	stemcellURL := c.Host + c.stemcellDownloadPath
+	resp, err := http.Head(fmt.Sprintf(stemcellURL, name, version))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	stemcellURL = resp.Request.URL.String()
+
+	ranger := content.NewRanger(routines)
+	ranges, err := ranger.BuildRange(resp.ContentLength)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("Downloading stemcell from '%s'...\n", stemcellURL)
+
+	var wg sync.WaitGroup
+	bar := pb.New(int(resp.ContentLength))
+	bar.ShowTimeLeft = false
+	bar.Start()
+	for _, r := range ranges {
+		wg.Add(1)
+		go func(byteRange string) {
+			defer wg.Done()
+			req, err := http.NewRequest("GET", stemcellURL, nil)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
+			req.Header.Add("Range", byteRangeHeader)
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			defer resp.Body.Close()
+
+			respBytes, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			bytesWritten, err := location.WriteAt(respBytes, int64(offset))
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			bar.Add(bytesWritten)
+		}(r)
+	}
+
+	wg.Wait()
+	bar.Finish()
+
+	return nil
 }
