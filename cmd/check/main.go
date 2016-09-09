@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
-	"github.com/concourse/bosh-io-stemcell-resource/progress"
 	"github.com/concourse/bosh-io-stemcell-resource/versions"
 )
 
@@ -32,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	client := boshio.NewClient(progress.NewBar())
+	client := boshio.NewClient(nil, nil)
 	stemcells := client.GetStemcells(checkRequest.Source.Name)
 
 	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)

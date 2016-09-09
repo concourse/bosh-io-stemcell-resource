@@ -11,11 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/concourse/bosh-io-stemcell-resource/content"
 )
-
-const routines = 10
 
 type Stemcell struct {
 	Name    string
@@ -38,6 +34,10 @@ type bar interface {
 	Finish()
 }
 
+type ranger interface {
+	BuildRange(contentLength int64) ([]string, error)
+}
+
 func (s Stemcell) Details() Metadata {
 	if s.Light != nil {
 		return *s.Light
@@ -49,14 +49,16 @@ func (s Stemcell) Details() Metadata {
 type Client struct {
 	Host                 string
 	bar                  bar
+	ranger               ranger
 	stemcellMetadataPath string
 	stemcellDownloadPath string
 }
 
-func NewClient(b bar) *Client {
+func NewClient(b bar, r ranger) *Client {
 	return &Client{
 		Host:                 "https://bosh.io/",
 		bar:                  b,
+		ranger:               r,
 		stemcellMetadataPath: "api/v1/stemcells/%s",
 		stemcellDownloadPath: "d/stemcells/%s?v=%s",
 	}
@@ -132,8 +134,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 	stemcellURL = resp.Request.URL.String()
 
-	ranger := content.NewRanger(routines)
-	ranges, err := ranger.BuildRange(resp.ContentLength)
+	ranges, err := c.ranger.BuildRange(resp.ContentLength)
 	if err != nil {
 		panic(err)
 	}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
+	"github.com/concourse/bosh-io-stemcell-resource/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,28 +88,28 @@ var _ = Describe("Boshio", func() {
 		Context("when an error occurs", func() {
 			Context("when the stemcell cannot be found", func() {
 				It("returns an error", func() {
-					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", noopWriter{})
+					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", fakes.NoopWriter{})
 					Expect(err).To(MatchError(`Failed to find stemcell: "some-heavy-stemcell"`))
 				})
 			})
 
 			Context("when url writer fails", func() {
 				It("returns an error", func() {
-					err := client.WriteMetadata("some-light-stemcell", "some version", "url", noopWriter{})
+					err := client.WriteMetadata("some-light-stemcell", "some version", "url", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
 
 			Context("when sha1 writer fails", func() {
 				It("returns an error", func() {
-					err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", noopWriter{})
+					err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
 
 			Context("when version writer fails", func() {
 				It("returns an error", func() {
-					err := client.WriteMetadata("some-light-stemcell", "some version", "version", noopWriter{})
+					err := client.WriteMetadata("some-light-stemcell", "some version", "version", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
@@ -116,6 +117,15 @@ var _ = Describe("Boshio", func() {
 	})
 
 	Describe("DownloadStemcell", func() {
+		BeforeEach(func() {
+			ranger.BuildRangeCall.Returns.Ranges = []string{
+				"0-9", "10-19", "20-29",
+				"30-39", "40-49", "50-59",
+				"60-69", "70-79", "80-89",
+				"90-99",
+			}
+		})
+
 		It("writes the stemcell to the provided location", func() {
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())

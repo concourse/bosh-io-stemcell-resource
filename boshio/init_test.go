@@ -1,7 +1,6 @@
 package boshio_test
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -16,12 +15,6 @@ import (
 	"testing"
 )
 
-type noopWriter struct{}
-
-func (no noopWriter) Write(b []byte) (n int, err error) {
-	return 0, errors.New("explosions")
-}
-
 func TestBoshio(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Boshio Suite")
@@ -29,6 +22,7 @@ func TestBoshio(t *testing.T) {
 
 var (
 	client *boshio.Client
+	ranger *fakes.Ranger
 	server *httptest.Server
 )
 
@@ -87,7 +81,8 @@ var _ = BeforeEach(func() {
 		}
 	}))
 
-	client = boshio.NewClient(fakes.Bar{})
+	ranger = &fakes.Ranger{}
+	client = boshio.NewClient(fakes.Bar{}, ranger)
 	client.Host = server.URL + "/"
 })
 
