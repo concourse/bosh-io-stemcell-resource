@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
+	"github.com/concourse/bosh-io-stemcell-resource/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -86,7 +87,7 @@ var _ = BeforeEach(func() {
 		}
 	}))
 
-	client = boshio.NewClient()
+	client = boshio.NewClient(fakes.Bar{})
 	client.Host = server.URL + "/"
 })
 

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
+	"github.com/concourse/bosh-io-stemcell-resource/progress"
 )
 
 type concourseIn struct {
@@ -38,7 +39,7 @@ func main() {
 
 	location := os.Args[1]
 
-	client := boshio.NewClient()
+	client := boshio.NewClient(progress.NewBar())
 
 	dataLocations := []string{"version", "sha1", "url"}
 

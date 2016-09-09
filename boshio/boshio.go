@@ -12,8 +12,6 @@ import (
 	"strings"
 	"sync"
 
-	"gopkg.in/cheggaaa/pb.v1"
-
 	"github.com/concourse/bosh-io-stemcell-resource/content"
 )
 
@@ -33,6 +31,13 @@ type Metadata struct {
 	SHA1 string
 }
 
+type bar interface {
+	SetTotal(contentLength int64)
+	Add(totalWritten int) int
+	Kickoff()
+	Finish()
+}
+
 func (s Stemcell) Details() Metadata {
 	if s.Light != nil {
 		return *s.Light
@@ -43,13 +48,15 @@ func (s Stemcell) Details() Metadata {
 
 type Client struct {
 	Host                 string
+	bar                  bar
 	stemcellMetadataPath string
 	stemcellDownloadPath string
 }
 
-func NewClient() *Client {
+func NewClient(b bar) *Client {
 	return &Client{
 		Host:                 "https://bosh.io/",
+		bar:                  b,
 		stemcellMetadataPath: "api/v1/stemcells/%s",
 		stemcellDownloadPath: "d/stemcells/%s?v=%s",
 	}
@@ -142,14 +149,15 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 	}
 	defer stemcell.Close()
 
+	c.bar.SetTotal(int64(resp.ContentLength))
+	c.bar.Kickoff()
+
 	var wg sync.WaitGroup
-	bar := pb.New(int(resp.ContentLength))
-	bar.ShowTimeLeft = false
-	bar.Start()
 	for _, r := range ranges {
 		wg.Add(1)
 		go func(byteRange string) {
 			defer wg.Done()
+
 			req, err := http.NewRequest("GET", stemcellURL, nil)
 			if err != nil {
 				panic(err)
@@ -180,12 +188,13 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 				panic(err)
 			}
 
-			bar.Add(bytesWritten)
+			c.bar.Add(bytesWritten)
 		}(r)
 	}
 
 	wg.Wait()
-	bar.Finish()
+
+	c.bar.Finish()
 
 	return nil
 }
