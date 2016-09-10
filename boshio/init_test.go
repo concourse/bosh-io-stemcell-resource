@@ -1,14 +1,11 @@
 package boshio_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strconv"
 
-	"github.com/concourse/bosh-io-stemcell-resource/boshio"
-	"github.com/concourse/bosh-io-stemcell-resource/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -21,43 +18,85 @@ func TestBoshio(t *testing.T) {
 }
 
 var (
-	client *boshio.Client
-	ranger *fakes.Ranger
-	server *httptest.Server
+	boshioServer *server
 )
 
+type server struct {
+	RedirectHandler http.HandlerFunc
+	TarballHandler  http.HandlerFunc
+	LightAPIHandler http.HandlerFunc
+	HeavyAPIHandler http.HandlerFunc
+	mux             *http.ServeMux
+	s               *httptest.Server
+}
+
+func (s *server) Start() {
+	s.mux.HandleFunc("/d/stemcells/different-stemcell", boshioServer.RedirectHandler)
+	s.mux.HandleFunc("/path/to/light-different-stemcell.tgz", boshioServer.TarballHandler)
+	s.mux.HandleFunc("/api/v1/stemcells/some-light-stemcell", boshioServer.LightAPIHandler)
+	s.mux.HandleFunc("/api/v1/stemcells/some-heavy-stemcell", boshioServer.HeavyAPIHandler)
+
+	s.s.Start()
+}
+
+func (s *server) Stop() {
+	s.s.Close()
+}
+
+func (s *server) URL() string {
+	return "http://" + s.s.Listener.Addr().String() + "/"
+}
+
 var _ = BeforeEach(func() {
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		switch req.URL.Path {
-		case "/d/stemcells/different-stemcell":
-			magicURL := req.URL
-			magicURL.Path = "/path/to/light-different-stemcell.tgz"
+	router := http.NewServeMux()
+	testServer := httptest.NewUnstartedServer(router)
+	boshioServer = &server{
+		mux:             router,
+		RedirectHandler: redirectHandler,
+		TarballHandler:  tarballHandler,
+		LightAPIHandler: lightAPIHandler,
+		HeavyAPIHandler: heavyAPIHandler,
+		s:               testServer,
+	}
+})
 
-			w.Header().Add("Location", magicURL.String())
-			w.WriteHeader(http.StatusMovedPermanently)
-		case "/path/to/light-different-stemcell.tgz":
-			if req.Method == "HEAD" {
-				w.Header().Add("Content-Length", "100")
-				return
-			}
+var _ = AfterEach(func() {
+	boshioServer.Stop()
+})
 
-			ex := regexp.MustCompile(`bytes=(\d+)-(\d+)`)
-			matches := ex.FindStringSubmatch(req.Header.Get("Range"))
+func redirectHandler(w http.ResponseWriter, req *http.Request) {
+	magicURL := req.URL
+	magicURL.Path = "/path/to/light-different-stemcell.tgz"
 
-			start, err := strconv.Atoi(matches[1])
-			if err != nil {
-				Fail(err.Error())
-			}
+	w.Header().Add("Location", magicURL.String())
+	w.WriteHeader(http.StatusMovedPermanently)
+}
 
-			end, err := strconv.Atoi(matches[2])
-			if err != nil {
-				Fail(err.Error())
-			}
+func tarballHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method == "HEAD" {
+		w.Header().Add("Content-Length", "100")
+		return
+	}
 
-			content := []byte("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of..")
-			w.Write(content[start : end+1])
-		case "/api/v1/stemcells/some-light-stemcell":
-			w.Write([]byte(`[{
+	ex := regexp.MustCompile(`bytes=(\d+)-(\d+)`)
+	matches := ex.FindStringSubmatch(req.Header.Get("Range"))
+
+	start, err := strconv.Atoi(matches[1])
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	end, err := strconv.Atoi(matches[2])
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	content := []byte("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of..")
+	w.Write(content[start : end+1])
+}
+
+func lightAPIHandler(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(`[{
 					"name": "a stemcell",
 					"version": "some version",
 					"light": {
@@ -67,8 +106,10 @@ var _ = BeforeEach(func() {
 						"sha1": "2222"
 					}
 				}]`))
-		case "/api/v1/stemcells/some-heavy-stemcell":
-			w.Write([]byte(`[{
+}
+
+func heavyAPIHandler(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(`[{
 					"regular": {
 						"url": "http://example.com/heavy",
 						"size": 2000,
@@ -76,16 +117,4 @@ var _ = BeforeEach(func() {
 						"sha1": "asdf"
 					}
 				}]`))
-		default:
-			Fail(fmt.Sprintf("received unknown request: %s", req.URL.Path))
-		}
-	}))
-
-	ranger = &fakes.Ranger{}
-	client = boshio.NewClient(fakes.Bar{}, ranger)
-	client.Host = server.URL + "/"
-})
-
-var _ = AfterEach(func() {
-	server.Close()
-})
+}

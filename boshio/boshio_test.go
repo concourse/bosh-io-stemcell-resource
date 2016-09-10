@@ -2,6 +2,7 @@ package boshio_test
 
 import (
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -13,9 +14,23 @@ import (
 )
 
 var _ = Describe("Boshio", func() {
+	var (
+		client *boshio.Client
+		ranger *fakes.Ranger
+	)
+
+	BeforeEach(func() {
+		ranger = &fakes.Ranger{}
+		client = boshio.NewClient(fakes.Bar{}, ranger)
+		client.Host = boshioServer.URL()
+	})
+
 	Describe("GetStemcells", func() {
 		It("fetches all stemcells for a given name", func() {
-			stemcells := client.GetStemcells("some-light-stemcell")
+			boshioServer.Start()
+			stemcells, err := client.GetStemcells("some-light-stemcell")
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(stemcells).To(Equal([]boshio.Stemcell{
 				{
 					Name:    "a stemcell",
@@ -29,11 +44,28 @@ var _ = Describe("Boshio", func() {
 				},
 			}))
 		})
+
+		Context("when an error occurs", func() {
+			Context("when bosh.io responds with a non-200", func() {
+				It("returns an error", func() {
+					boshioServer.LightAPIHandler = func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusInternalServerError)
+					}
+
+					boshioServer.Start()
+					_, err := client.GetStemcells("some-light-stemcell")
+					Expect(err).To(MatchError("failed fetching metadata - boshio returned: 500"))
+				})
+			})
+		})
 	})
 
 	Describe("Details", func() {
 		It("returns stemcell metadata", func() {
-			stemcells := client.GetStemcells("some-heavy-stemcell")
+			boshioServer.Start()
+			stemcells, err := client.GetStemcells("some-heavy-stemcell")
+			Expect(err).NotTo(HaveOccurred())
+
 			metadata := stemcells[0].Details()
 			Expect(metadata).To(Equal(boshio.Metadata{
 				URL:  "http://example.com/heavy",
@@ -59,6 +91,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the url to disk", func() {
+			boshioServer.Start()
 			err := client.WriteMetadata("some-light-stemcell", "some version", "url", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -68,6 +101,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the sha1 to disk", func() {
+			boshioServer.Start()
 			err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -77,6 +111,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the version to disk", func() {
+			boshioServer.Start()
 			err := client.WriteMetadata("some-light-stemcell", "some version", "version", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -88,6 +123,7 @@ var _ = Describe("Boshio", func() {
 		Context("when an error occurs", func() {
 			Context("when the stemcell cannot be found", func() {
 				It("returns an error", func() {
+					boshioServer.Start()
 					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", fakes.NoopWriter{})
 					Expect(err).To(MatchError(`Failed to find stemcell: "some-heavy-stemcell"`))
 				})
@@ -95,6 +131,7 @@ var _ = Describe("Boshio", func() {
 
 			Context("when url writer fails", func() {
 				It("returns an error", func() {
+					boshioServer.Start()
 					err := client.WriteMetadata("some-light-stemcell", "some version", "url", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
@@ -102,6 +139,7 @@ var _ = Describe("Boshio", func() {
 
 			Context("when sha1 writer fails", func() {
 				It("returns an error", func() {
+					boshioServer.Start()
 					err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
@@ -109,6 +147,7 @@ var _ = Describe("Boshio", func() {
 
 			Context("when version writer fails", func() {
 				It("returns an error", func() {
+					boshioServer.Start()
 					err := client.WriteMetadata("some-light-stemcell", "some version", "version", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
@@ -127,6 +166,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the stemcell to the provided location", func() {
+			boshioServer.Start()
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -140,6 +180,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("uses the stemcell filename from bosh.io when the preserveFileName paream is set to true", func() {
+			boshioServer.Start()
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 

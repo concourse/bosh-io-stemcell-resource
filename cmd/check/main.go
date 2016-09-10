@@ -32,7 +32,10 @@ func main() {
 	}
 
 	client := boshio.NewClient(nil, nil)
-	stemcells := client.GetStemcells(checkRequest.Source.Name)
+	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
+	if err != nil {
+		panic(err)
+	}
 
 	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)
 

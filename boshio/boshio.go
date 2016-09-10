@@ -64,7 +64,7 @@ func NewClient(b bar, r ranger) *Client {
 	}
 }
 
-func (c *Client) GetStemcells(name string) []Stemcell {
+func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 	metadataURL := c.Host + c.stemcellMetadataPath
 
 	resp, err := http.Get(fmt.Sprintf(metadataURL, name))
@@ -73,7 +73,7 @@ func (c *Client) GetStemcells(name string) []Stemcell {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		panic("wrong code")
+		return nil, fmt.Errorf("failed fetching metadata - boshio returned: %d", resp.StatusCode)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -87,13 +87,18 @@ func (c *Client) GetStemcells(name string) []Stemcell {
 		panic(err)
 	}
 
-	return stemcells
+	return stemcells, nil
 }
 
 func (c *Client) WriteMetadata(name string, version string, metadataKey string, metadataFile io.Writer) error {
 	var stemcell Stemcell
 
-	for _, s := range c.GetStemcells(name) {
+	stemcells, err := c.GetStemcells(name)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, s := range stemcells {
 		if s.Version == version {
 			stemcell = s
 			break
