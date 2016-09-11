@@ -57,6 +57,26 @@ var _ = Describe("Boshio", func() {
 					Expect(err).To(MatchError("failed fetching metadata - boshio returned: 500"))
 				})
 			})
+
+			Context("when the get fails", func() {
+				It("returns an error", func() {
+					client.Host = "%%%%"
+					_, err := client.GetStemcells("some-light-stemcell")
+					Expect(err).To(MatchError(ContainSubstring("invalid URL escape")))
+				})
+			})
+
+			Context("when the response is invalid json", func() {
+				It("returns an error", func() {
+					boshioServer.LightAPIHandler = func(w http.ResponseWriter, req *http.Request) {
+						w.Write([]byte(`%%%%%`))
+					}
+
+					boshioServer.Start()
+					_, err := client.GetStemcells("some-light-stemcell")
+					Expect(err).To(MatchError(ContainSubstring("invalid character")))
+				})
+			})
 		})
 	})
 

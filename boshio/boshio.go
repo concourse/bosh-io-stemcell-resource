@@ -69,7 +69,7 @@ func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 
 	resp, err := http.Get(fmt.Sprintf(metadataURL, name))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -78,13 +78,13 @@ func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var stemcells []Stemcell
 	err = json.Unmarshal(bodyBytes, &stemcells)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return stemcells, nil

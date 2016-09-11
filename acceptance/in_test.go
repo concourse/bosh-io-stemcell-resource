@@ -119,7 +119,7 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "30s").Should(gexec.Exit(0))
+				Eventually(session, "60s").Should(gexec.Exit(0))
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -155,7 +155,7 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "30s").Should(gexec.Exit(0))
+				Eventually(session, "60s").Should(gexec.Exit(0))
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
