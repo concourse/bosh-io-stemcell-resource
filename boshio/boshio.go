@@ -95,7 +95,7 @@ func (c *Client) WriteMetadata(name string, version string, metadataKey string, 
 
 	stemcells, err := c.GetStemcells(name)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for _, s := range stemcells {

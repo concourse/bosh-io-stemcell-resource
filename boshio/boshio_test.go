@@ -141,6 +141,18 @@ var _ = Describe("Boshio", func() {
 		})
 
 		Context("when an error occurs", func() {
+			Context("", func() {
+				It("returns an error", func() {
+					boshioServer.HeavyAPIHandler = func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusInternalServerError)
+					}
+
+					boshioServer.Start()
+					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", fakes.NoopWriter{})
+					Expect(err).To(MatchError("failed fetching metadata - boshio returned: 500"))
+				})
+			})
+
 			Context("when the stemcell cannot be found", func() {
 				It("returns an error", func() {
 					boshioServer.Start()
