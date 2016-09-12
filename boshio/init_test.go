@@ -78,6 +78,8 @@ func tarballHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusPartialContent)
+
 	ex := regexp.MustCompile(`bytes=(\d+)-(\d+)`)
 	matches := ex.FindStringSubmatch(req.Header.Get("Range"))
 

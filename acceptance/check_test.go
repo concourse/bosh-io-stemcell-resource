@@ -67,4 +67,24 @@ var _ = Describe("check", func() {
 			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.2"}`))
 		})
 	})
+
+	Context("when an error occurs", func() {
+		var command *exec.Cmd
+
+		BeforeEach(func() {
+			command = exec.Command(boshioCheck)
+			command.Stdin = bytes.NewBufferString(specificVersionRequest)
+		})
+
+		Context("when the json cannot be read", func() {
+			It("returns an error", func() {
+				command.Stdin = bytes.NewBufferString("%%%%")
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(session).Should(gexec.Exit(1))
+				Expect(session.Err).To(gbytes.Say("failed unmarshalling: invalid character"))
+			})
+		})
+	})
 })
