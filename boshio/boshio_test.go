@@ -260,8 +260,9 @@ var _ = Describe("Boshio", func() {
 			})
 		})
 
-		PContext("when the get request is not successful", func() {
+		Context("when the get request is not successful", func() {
 			It("returns an error", func() {
+				ranger.BuildRangeCall.Returns.Ranges = []string{"0-9"}
 				boshioServer.TarballHandler = func(w http.ResponseWriter, req *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				}
@@ -271,12 +272,7 @@ var _ = Describe("Boshio", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DownloadStemcell("different-stemcell", "2222", location, true)
-				Expect(err).To(MatchError(ContainSubstring("failed to downlaod stemcell - boshio returned 500")))
-			})
-		})
-
-		Context("", func() {
-			It("returns an error", func() {
+				Expect(err).To(MatchError(ContainSubstring("failed to download stemcell - boshio returned 500")))
 			})
 		})
 	})

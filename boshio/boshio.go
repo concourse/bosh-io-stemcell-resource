@@ -159,9 +159,11 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 	c.bar.Kickoff()
 
 	var wg sync.WaitGroup
+	finish := make(chan error)
+	broken := make(chan error)
 	for _, r := range ranges {
 		wg.Add(1)
-		go func(byteRange string) {
+		go func(byteRange string, errChan chan<- error) {
 			defer wg.Done()
 
 			req, err := http.NewRequest("GET", stemcellURL, nil)
@@ -176,8 +178,12 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 			if err != nil {
 				panic(err)
 			}
-
 			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusPartialContent {
+				errChan <- fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
+				return
+			}
 
 			respBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -195,12 +201,22 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 			}
 
 			c.bar.Add(bytesWritten)
-		}(r)
+		}(r, broken)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(finish)
+	}()
 
-	c.bar.Finish()
+	select {
+	case <-finish:
+		c.bar.Finish()
+	case err := <-broken:
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
