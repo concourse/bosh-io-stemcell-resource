@@ -1,6 +1,7 @@
 package boshio_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -211,7 +212,7 @@ var _ = Describe("Boshio", func() {
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
 		})
 
-		It("uses the stemcell filename from bosh.io when the preserveFileName paream is set to true", func() {
+		It("uses the stemcell filename from bosh.io when the preserveFileName param is set to true", func() {
 			boshioServer.Start()
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
@@ -223,6 +224,60 @@ var _ = Describe("Boshio", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+		})
+	})
+
+	Context("when an error occurs", func() {
+		Context("when the head request is not successful", func() {
+			It("returns an error", func() {
+				client.Host = "%%%%"
+				err := client.DownloadStemcell("different-stemcell", "2222", "", true)
+				Expect(err).To(MatchError(ContainSubstring("invalid URL escape")))
+			})
+		})
+
+		Context("when the range cannot be constructed", func() {
+			It("returns an error", func() {
+				ranger.BuildRangeCall.Returns.Err = errors.New("failed to build a range")
+				boshioServer.Start()
+
+				err := client.DownloadStemcell("different-stemcell", "2222", "", true)
+				Expect(err).To(MatchError("failed to build a range"))
+			})
+		})
+
+		Context("when the stemcell file cannot be created", func() {
+			It("returns an error", func() {
+				boshioServer.Start()
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = os.Chmod(location, 0000)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+			})
+		})
+
+		PContext("when the get request is not successful", func() {
+			It("returns an error", func() {
+				boshioServer.TarballHandler = func(w http.ResponseWriter, req *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+
+				boshioServer.Start()
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+				Expect(err).To(MatchError(ContainSubstring("failed to downlaod stemcell - boshio returned 500")))
+			})
+		})
+
+		Context("", func() {
+			It("returns an error", func() {
+			})
 		})
 	})
 })

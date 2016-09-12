@@ -134,14 +134,14 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 	stemcellURL := c.Host + c.stemcellDownloadPath
 	resp, err := http.Head(fmt.Sprintf(stemcellURL, name, version))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	stemcellURL = resp.Request.URL.String()
 
 	ranges, err := c.ranger.BuildRange(resp.ContentLength)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	stemcellFileName := "stemcell.tgz"
@@ -151,7 +151,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 	stemcell, err := os.Create(filepath.Join(location, stemcellFileName))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer stemcell.Close()
 
