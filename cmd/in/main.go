@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/concourse/bosh-io-stemcell-resource/progress"
 )
 
-const routines = 30
+const routines = 10
 
 type concourseIn struct {
 	Source struct {
@@ -29,7 +30,7 @@ type concourseIn struct {
 func main() {
 	rawJSON, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	var inRequest concourseIn
@@ -37,7 +38,7 @@ func main() {
 
 	err = json.Unmarshal(rawJSON, &inRequest)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
 	location := os.Args[1]
@@ -49,20 +50,20 @@ func main() {
 	for _, name := range dataLocations {
 		fileLocation, err := os.Create(filepath.Join(location, name))
 		if err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 		defer fileLocation.Close()
 
 		err = client.WriteMetadata(inRequest.Source.Name, inRequest.Version.Version, name, fileLocation)
 		if err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 	}
 
 	if inRequest.Params.Tarball {
 		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, location, inRequest.Params.PreserveFileName)
 		if err != nil {
-			panic(err)
+			log.Fatalln(err)
 		}
 	}
 }

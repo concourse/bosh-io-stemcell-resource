@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo"
@@ -48,6 +49,19 @@ const stemcellRequestWithFileName = `
 	},
 	"version": {
 		"version": "3262.12"
+	}
+}`
+
+const invalidRequestVersion = `
+{
+	"source": {
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
+	},
+	"params": {
+		"preserveFileName": true
+	},
+	"version": {
+		"version": "AAAAA"
 	}
 }`
 
@@ -119,7 +133,7 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "60s").Should(gexec.Exit(0))
+				Eventually(session, "600s").Should(gexec.Exit(0))
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -162,6 +176,62 @@ var _ = Describe("in", func() {
 				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+			})
+		})
+	})
+
+	Context("when an error occurs", func() {
+		var (
+			command    *exec.Cmd
+			contentDir string
+		)
+
+		BeforeEach(func() {
+			var err error
+			contentDir, err = ioutil.TempDir("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			command = exec.Command(boshioIn, contentDir)
+			command.Stdin = bytes.NewBufferString(stemcellRequestWithFileName)
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(contentDir)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when the provided location is not writeable", func() {
+			It("returns an error", func() {
+				err := os.Chmod(contentDir, 0000)
+				Expect(err).NotTo(HaveOccurred())
+
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(session).Should(gexec.Exit(1))
+				Eventually(session.Err).Should(gbytes.Say("permission denied"))
+			})
+		})
+
+		Context("when the request version does not exist", func() {
+			It("returns an error", func() {
+				command.Stdin = bytes.NewBufferString(invalidRequestVersion)
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(session, "10s").Should(gexec.Exit(1))
+				Eventually(session.Err).Should(gbytes.Say("Failed to find stemcell"))
+			})
+		})
+
+		Context("when the json provided is malformed", func() {
+			It("returns an error", func() {
+				command.Stdin = bytes.NewBufferString("%%%%%%%")
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(session).Should(gexec.Exit(1))
+				Eventually(session.Err).Should(gbytes.Say("invalid character"))
 			})
 		})
 	})

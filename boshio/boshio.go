@@ -168,7 +168,8 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 			req, err := http.NewRequest("GET", stemcellURL, nil)
 			if err != nil {
-				panic(err)
+				errChan <- err
+				return
 			}
 
 			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
@@ -176,7 +177,8 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				panic(err)
+				errChan <- err
+				return
 			}
 			defer resp.Body.Close()
 
@@ -187,17 +189,20 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 			respBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				panic(err)
+				errChan <- err
+				return
 			}
 
 			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
 			if err != nil {
-				panic(err)
+				errChan <- err
+				return
 			}
 
 			bytesWritten, err := stemcell.WriteAt(respBytes, int64(offset))
 			if err != nil {
-				panic(err)
+				errChan <- err
+				return
 			}
 
 			c.bar.Add(bytesWritten)
