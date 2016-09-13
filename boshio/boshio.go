@@ -48,24 +48,24 @@ func (s Stemcell) Details() Metadata {
 
 type Client struct {
 	Host                 string
-	bar                  bar
-	ranger               ranger
-	stemcellMetadataPath string
-	stemcellDownloadPath string
+	Bar                  bar
+	Ranger               ranger
+	StemcellMetadataPath string
+	StemcellDownloadPath string
 }
 
 func NewClient(b bar, r ranger) *Client {
 	return &Client{
 		Host:                 "https://bosh.io/",
-		bar:                  b,
-		ranger:               r,
-		stemcellMetadataPath: "api/v1/stemcells/%s",
-		stemcellDownloadPath: "d/stemcells/%s?v=%s",
+		Bar:                  b,
+		Ranger:               r,
+		StemcellMetadataPath: "api/v1/stemcells/%s",
+		StemcellDownloadPath: "d/stemcells/%s?v=%s",
 	}
 }
 
 func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
-	metadataURL := c.Host + c.stemcellMetadataPath
+	metadataURL := c.Host + c.StemcellMetadataPath
 
 	resp, err := http.Get(fmt.Sprintf(metadataURL, name))
 	if err != nil {
@@ -131,7 +131,7 @@ func (c *Client) WriteMetadata(name string, version string, metadataKey string, 
 }
 
 func (c *Client) DownloadStemcell(name string, version string, location string, preserveFileName bool) error {
-	stemcellURL := c.Host + c.stemcellDownloadPath
+	stemcellURL := c.Host + c.StemcellDownloadPath
 	resp, err := http.Head(fmt.Sprintf(stemcellURL, name, version))
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 	stemcellURL = resp.Request.URL.String()
 
-	ranges, err := c.ranger.BuildRange(resp.ContentLength)
+	ranges, err := c.Ranger.BuildRange(resp.ContentLength)
 	if err != nil {
 		return err
 	}
@@ -155,8 +155,8 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 	}
 	defer stemcell.Close()
 
-	c.bar.SetTotal(int64(resp.ContentLength))
-	c.bar.Kickoff()
+	c.Bar.SetTotal(int64(resp.ContentLength))
+	c.Bar.Kickoff()
 
 	var wg sync.WaitGroup
 	finish := make(chan error)
@@ -205,7 +205,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 				return
 			}
 
-			c.bar.Add(bytesWritten)
+			c.Bar.Add(bytesWritten)
 		}(r, broken)
 	}
 
@@ -216,7 +216,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 
 	select {
 	case <-finish:
-		c.bar.Finish()
+		c.Bar.Finish()
 	case err := <-broken:
 		if err != nil {
 			return err
