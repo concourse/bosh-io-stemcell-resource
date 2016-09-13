@@ -15,8 +15,7 @@ const noVersionRequest = `
 {
 	"source": {
 		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
-	},
-	"version": {}
+	}
 }`
 
 const specificVersionRequest = `
