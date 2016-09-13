@@ -1,5 +1,7 @@
 package out
 
+import "log"
+
 func main() {
-	log.Fataln("out is not supported via this resource")
+	log.Fatalln("out is not supported via this resource")
 }
