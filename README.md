@@ -36,4 +36,4 @@ Fetches a given stemcell, placing the following files in the destination:
 #### Parameters
 
 * `tarball`: *Optional.* Default `true`. Fetch the stemcell tarball.
-* `preserveFileName`: *Optional.* Default `false`. Keep the original filename of the stemcell.
+* `preserve_filename`: *Optional.* Default `false`. Keep the original filename of the stemcell.

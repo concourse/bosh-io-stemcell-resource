@@ -20,7 +20,7 @@ type concourseIn struct {
 	}
 	Params struct {
 		Tarball          bool
-		PreserveFileName bool
+		PreserveFilename bool `json:"preserve_filename"`
 	}
 	Version struct {
 		Version string
@@ -61,7 +61,7 @@ func main() {
 	}
 
 	if inRequest.Params.Tarball {
-		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, location, inRequest.Params.PreserveFileName)
+		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, location, inRequest.Params.PreserveFilename)
 		if err != nil {
 			log.Fatalln(err)
 		}

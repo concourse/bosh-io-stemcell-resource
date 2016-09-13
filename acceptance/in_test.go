@@ -45,7 +45,7 @@ const stemcellRequestWithFileName = `
 		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
 	},
 	"params": {
-		"preserveFileName": true
+		"preserve_filename": true
 	},
 	"version": {
 		"version": "3262.12"
@@ -58,7 +58,7 @@ const invalidRequestVersion = `
 		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
 	},
 	"params": {
-		"preserveFileName": true
+		"preserve_filename": true
 	},
 	"version": {
 		"version": "AAAAA"
