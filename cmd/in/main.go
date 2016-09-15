@@ -45,6 +45,16 @@ func main() {
 
 	client := boshio.NewClient(progress.NewBar(), content.NewRanger(routines))
 
+	stemcells, err := client.GetStemcells(inRequest.Source.Name)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	stemcell, err := client.FilterStemcells(inRequest.Version.Version, stemcells)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	dataLocations := []string{"version", "sha1", "url"}
 
 	for _, name := range dataLocations {
@@ -54,14 +64,14 @@ func main() {
 		}
 		defer fileLocation.Close()
 
-		err = client.WriteMetadata(inRequest.Source.Name, inRequest.Version.Version, name, fileLocation)
+		err = client.WriteMetadata(stemcell, name, fileLocation)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 
 	if inRequest.Params.Tarball {
-		err = client.DownloadStemcell(inRequest.Source.Name, inRequest.Version.Version, location, inRequest.Params.PreserveFilename)
+		err = client.DownloadStemcell(stemcell, location, inRequest.Params.PreserveFilename)
 		if err != nil {
 			log.Fatalln(err)
 		}

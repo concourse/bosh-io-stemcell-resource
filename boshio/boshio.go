@@ -1,6 +1,7 @@
 package boshio
 
 import (
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -90,13 +91,8 @@ func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 	return stemcells, nil
 }
 
-func (c *Client) WriteMetadata(name string, version string, metadataKey string, metadataFile io.Writer) error {
+func (c *Client) FilterStemcells(version string, stemcells []Stemcell) (Stemcell, error) {
 	var stemcell Stemcell
-
-	stemcells, err := c.GetStemcells(name)
-	if err != nil {
-		return err
-	}
 
 	for _, s := range stemcells {
 		if s.Version == version {
@@ -106,9 +102,13 @@ func (c *Client) WriteMetadata(name string, version string, metadataKey string, 
 	}
 
 	if stemcell.Name == "" {
-		return fmt.Errorf("Failed to find stemcell: %q", name)
+		return Stemcell{}, fmt.Errorf("failed to find stemcell matching version: %q", version)
 	}
 
+	return stemcell, nil
+}
+
+func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFile io.Writer) error {
 	switch metadataKey {
 	case "url":
 		_, err := metadataFile.Write([]byte(stemcell.Details().URL))
@@ -130,9 +130,9 @@ func (c *Client) WriteMetadata(name string, version string, metadataKey string, 
 	return nil
 }
 
-func (c *Client) DownloadStemcell(name string, version string, location string, preserveFileName bool) error {
+func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
 	stemcellURL := c.Host + c.StemcellDownloadPath
-	resp, err := http.Head(fmt.Sprintf(stemcellURL, name, version))
+	resp, err := http.Head(fmt.Sprintf(stemcellURL, stemcell.Name, stemcell.Version))
 	if err != nil {
 		return err
 	}
@@ -149,11 +149,11 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 		stemcellFileName = filepath.Base(resp.Request.URL.Path)
 	}
 
-	stemcell, err := os.Create(filepath.Join(location, stemcellFileName))
+	stemcellData, err := os.Create(filepath.Join(location, stemcellFileName))
 	if err != nil {
 		return err
 	}
-	defer stemcell.Close()
+	defer stemcellData.Close()
 
 	c.Bar.SetTotal(int64(resp.ContentLength))
 	c.Bar.Kickoff()
@@ -199,7 +199,7 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 				return
 			}
 
-			bytesWritten, err := stemcell.WriteAt(respBytes, int64(offset))
+			bytesWritten, err := stemcellData.WriteAt(respBytes, int64(offset))
 			if err != nil {
 				errChan <- err
 				return
@@ -221,6 +221,16 @@ func (c *Client) DownloadStemcell(name string, version string, location string, 
 		if err != nil {
 			return err
 		}
+	}
+
+	computedSHA := sha1.New()
+	_, err = io.Copy(computedSHA, stemcellData)
+	if err != nil {
+		return err
+	}
+
+	if fmt.Sprintf("%x", computedSHA.Sum(nil)) != stemcell.Details().SHA1 {
+		return fmt.Errorf("computed sha1 %x did not match expected sha1 of %s", computedSHA.Sum(nil), stemcell.Details().SHA1)
 	}
 
 	return nil

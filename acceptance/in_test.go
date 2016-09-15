@@ -220,7 +220,7 @@ var _ = Describe("in", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(session, "10s").Should(gexec.Exit(1))
-				Eventually(session.Err).Should(gbytes.Say("Failed to find stemcell"))
+				Eventually(session.Err).Should(gbytes.Say("failed to find stemcell matching version:"))
 			})
 		})
 

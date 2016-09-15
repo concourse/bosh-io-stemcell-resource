@@ -97,6 +97,39 @@ var _ = Describe("Boshio", func() {
 		})
 	})
 
+	Describe("FilterStemcells", func() {
+		var stemcellList []boshio.Stemcell
+
+		BeforeEach(func() {
+			stemcellList = []boshio.Stemcell{
+				{
+					Name:    "some-stemcell",
+					Version: "111.1",
+				},
+				{
+					Name:    "some-other-stemcell",
+					Version: "2222",
+				},
+			}
+		})
+
+		It("returns exactly one stemcell from the list", func() {
+			stemcell, err := client.FilterStemcells("111.1", stemcellList)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(stemcell).To(Equal(boshio.Stemcell{Name: "some-stemcell", Version: "111.1"}))
+		})
+
+		Context("when an error occurs", func() {
+			Context("when the stemcell is not in the list", func() {
+				It("returns an error", func() {
+					_, err := client.FilterStemcells("aaaaa", stemcellList)
+					Expect(err).To(MatchError(`failed to find stemcell matching version: "aaaaa"`))
+				})
+			})
+		})
+	})
+
 	Describe("WriteMetadata", func() {
 		var fileLocation *os.File
 
@@ -112,8 +145,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the url to disk", func() {
-			boshioServer.Start()
-			err := client.WriteMetadata("some-light-stemcell", "some version", "url", fileLocation)
+			err := client.WriteMetadata(boshio.Stemcell{Light: &boshio.Metadata{URL: "http://example.com"}}, "url", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
 			url, err := ioutil.ReadFile(fileLocation.Name())
@@ -122,8 +154,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the sha1 to disk", func() {
-			boshioServer.Start()
-			err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fileLocation)
+			err := client.WriteMetadata(boshio.Stemcell{Regular: &boshio.Metadata{SHA1: "2222"}}, "sha1", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
 			sha1, err := ioutil.ReadFile(fileLocation.Name())
@@ -132,8 +163,7 @@ var _ = Describe("Boshio", func() {
 		})
 
 		It("writes the version to disk", func() {
-			boshioServer.Start()
-			err := client.WriteMetadata("some-light-stemcell", "some version", "version", fileLocation)
+			err := client.WriteMetadata(boshio.Stemcell{Version: "some version", Regular: &boshio.Metadata{}}, "version", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
 			version, err := ioutil.ReadFile(fileLocation.Name())
@@ -142,46 +172,23 @@ var _ = Describe("Boshio", func() {
 		})
 
 		Context("when an error occurs", func() {
-			Context("", func() {
-				It("returns an error", func() {
-					boshioServer.HeavyAPIHandler = func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusInternalServerError)
-					}
-
-					boshioServer.Start()
-					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", fakes.NoopWriter{})
-					Expect(err).To(MatchError("failed fetching metadata - boshio returned: 500"))
-				})
-			})
-
-			Context("when the stemcell cannot be found", func() {
-				It("returns an error", func() {
-					boshioServer.Start()
-					err := client.WriteMetadata("some-heavy-stemcell", "some version", "url", fakes.NoopWriter{})
-					Expect(err).To(MatchError(`Failed to find stemcell: "some-heavy-stemcell"`))
-				})
-			})
-
 			Context("when url writer fails", func() {
 				It("returns an error", func() {
-					boshioServer.Start()
-					err := client.WriteMetadata("some-light-stemcell", "some version", "url", fakes.NoopWriter{})
+					err := client.WriteMetadata(boshio.Stemcell{Name: "some-heavy-stemcell", Regular: &boshio.Metadata{}}, "url", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
 
 			Context("when sha1 writer fails", func() {
 				It("returns an error", func() {
-					boshioServer.Start()
-					err := client.WriteMetadata("some-light-stemcell", "some version", "sha1", fakes.NoopWriter{})
+					err := client.WriteMetadata(boshio.Stemcell{Name: "some-heavy-stemcell", Regular: &boshio.Metadata{}}, "sha1", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
 
 			Context("when version writer fails", func() {
 				It("returns an error", func() {
-					boshioServer.Start()
-					err := client.WriteMetadata("some-light-stemcell", "some version", "version", fakes.NoopWriter{})
+					err := client.WriteMetadata(boshio.Stemcell{Name: "some-heavy-stemcell", Regular: &boshio.Metadata{}}, "version", fakes.NoopWriter{})
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
@@ -189,12 +196,24 @@ var _ = Describe("Boshio", func() {
 	})
 
 	Describe("DownloadStemcell", func() {
+		var stubStemcell boshio.Stemcell
 		BeforeEach(func() {
 			ranger.BuildRangeCall.Returns.Ranges = []string{
 				"0-9", "10-19", "20-29",
 				"30-39", "40-49", "50-59",
 				"60-69", "70-79", "80-89",
 				"90-99",
+			}
+
+			stubStemcell = boshio.Stemcell{
+				Name:    "different-stemcell",
+				Version: "2222",
+				Regular: &boshio.Metadata{
+					URL:  "http://example.com",
+					Size: 100,
+					MD5:  "qqqq",
+					SHA1: "5f8d38fd6bb6fd12fcaa284c7132b64cbb20ea4e",
+				},
 			}
 		})
 
@@ -203,7 +222,7 @@ var _ = Describe("Boshio", func() {
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DownloadStemcell("different-stemcell", "2222", location, false)
+			err = client.DownloadStemcell(stubStemcell, location, false)
 			Expect(err).NotTo(HaveOccurred())
 
 			content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
@@ -217,7 +236,7 @@ var _ = Describe("Boshio", func() {
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+			err = client.DownloadStemcell(stubStemcell, location, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			content, err := ioutil.ReadFile(filepath.Join(location, "light-different-stemcell.tgz"))
@@ -228,10 +247,24 @@ var _ = Describe("Boshio", func() {
 	})
 
 	Context("when an error occurs", func() {
+		var stubStemcell boshio.Stemcell
+		BeforeEach(func() {
+			stubStemcell = boshio.Stemcell{
+				Name:    "different-stemcell",
+				Version: "2222",
+				Regular: &boshio.Metadata{
+					URL:  "http://example.com",
+					Size: 100,
+					MD5:  "qqqq",
+					SHA1: "2222",
+				},
+			}
+		})
+
 		Context("when the head request is not successful", func() {
 			It("returns an error", func() {
 				client.Host = "%%%%"
-				err := client.DownloadStemcell("different-stemcell", "2222", "", true)
+				err := client.DownloadStemcell(stubStemcell, "", true)
 				Expect(err).To(MatchError(ContainSubstring("invalid URL escape")))
 			})
 		})
@@ -241,7 +274,7 @@ var _ = Describe("Boshio", func() {
 				ranger.BuildRangeCall.Returns.Err = errors.New("failed to build a range")
 				boshioServer.Start()
 
-				err := client.DownloadStemcell("different-stemcell", "2222", "", true)
+				err := client.DownloadStemcell(stubStemcell, "", true)
 				Expect(err).To(MatchError("failed to build a range"))
 			})
 		})
@@ -255,8 +288,19 @@ var _ = Describe("Boshio", func() {
 				err = os.Chmod(location, 0000)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+				err = client.DownloadStemcell(stubStemcell, location, true)
 				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+			})
+		})
+
+		Context("when the sha1 cannot be verified", func() {
+			It("returns an error", func() {
+				boshioServer.Start()
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell(stubStemcell, location, true)
+				Expect(err).To(MatchError("computed sha1 da39a3ee5e6b4b0d3255bfef95601890afd80709 did not match expected sha1 of 2222"))
 			})
 		})
 
@@ -271,7 +315,7 @@ var _ = Describe("Boshio", func() {
 				location, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell("different-stemcell", "2222", location, true)
+				err = client.DownloadStemcell(stubStemcell, location, true)
 				Expect(err).To(MatchError(ContainSubstring("failed to download stemcell - boshio returned 500")))
 			})
 		})
