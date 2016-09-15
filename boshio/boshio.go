@@ -28,6 +28,7 @@ type Metadata struct {
 	SHA1 string
 }
 
+//go:generate counterfeiter -o ../fakes/bar.go --fake-name Bar . bar
 type bar interface {
 	SetTotal(contentLength int64)
 	Add(totalWritten int) int
@@ -35,6 +36,7 @@ type bar interface {
 	Finish()
 }
 
+//go:generate counterfeiter -o ../fakes/ranger.go --fake-name Ranger . ranger
 type ranger interface {
 	BuildRange(contentLength int64) ([]string, error)
 }

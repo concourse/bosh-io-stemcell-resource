@@ -22,7 +22,8 @@ var _ = Describe("Boshio", func() {
 
 	BeforeEach(func() {
 		ranger = &fakes.Ranger{}
-		client = boshio.NewClient(fakes.Bar{}, ranger)
+		bar := &fakes.Bar{}
+		client = boshio.NewClient(bar, ranger)
 		client.Host = boshioServer.URL()
 	})
 
@@ -198,12 +199,12 @@ var _ = Describe("Boshio", func() {
 	Describe("DownloadStemcell", func() {
 		var stubStemcell boshio.Stemcell
 		BeforeEach(func() {
-			ranger.BuildRangeCall.Returns.Ranges = []string{
+			ranger.BuildRangeReturns([]string{
 				"0-9", "10-19", "20-29",
 				"30-39", "40-49", "50-59",
 				"60-69", "70-79", "80-89",
 				"90-99",
-			}
+			}, nil)
 
 			stubStemcell = boshio.Stemcell{
 				Name:    "different-stemcell",
@@ -271,7 +272,7 @@ var _ = Describe("Boshio", func() {
 
 		Context("when the range cannot be constructed", func() {
 			It("returns an error", func() {
-				ranger.BuildRangeCall.Returns.Err = errors.New("failed to build a range")
+				ranger.BuildRangeReturns([]string{}, errors.New("failed to build a range"))
 				boshioServer.Start()
 
 				err := client.DownloadStemcell(stubStemcell, "", true)
@@ -306,7 +307,7 @@ var _ = Describe("Boshio", func() {
 
 		Context("when the get request is not successful", func() {
 			It("returns an error", func() {
-				ranger.BuildRangeCall.Returns.Ranges = []string{"0-9"}
+				ranger.BuildRangeReturns([]string{"0-9"}, nil)
 				boshioServer.TarballHandler = func(w http.ResponseWriter, req *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
 				}
