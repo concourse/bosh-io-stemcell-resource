@@ -283,14 +283,16 @@ var _ = Describe("Boshio", func() {
 		Context("when the stemcell file cannot be created", func() {
 			It("returns an error", func() {
 				boshioServer.Start()
-				location, err := ioutil.TempDir("", "")
+				location, err := ioutil.TempFile("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = os.Chmod(location, 0000)
+				defer os.RemoveAll(location.Name())
+
+				err = location.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell(stubStemcell, location, true)
-				Expect(err).To(MatchError(ContainSubstring("permission denied")))
+				err = client.DownloadStemcell(stubStemcell, location.Name(), true)
+				Expect(err).To(MatchError(ContainSubstring("not a directory")))
 			})
 		})
 

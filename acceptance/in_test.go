@@ -206,16 +206,27 @@ var _ = Describe("in", func() {
 		})
 
 		Context("when the provided location is not writeable", func() {
-			It("returns an error", func() {
-				err := os.Chmod(contentDir, 0000)
+			BeforeEach(func() {
+				err := os.RemoveAll(contentDir)
 				Expect(err).NotTo(HaveOccurred())
 
+				contentFile, err := os.Create(contentDir)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = contentFile.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				// make it a file instead
+				contentDir = contentFile.Name()
+			})
+
+			It("returns an error", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(1))
-				Expect(session.Err).To(gbytes.Say("permission denied"))
+				Expect(session.Err).To(gbytes.Say("not a directory"))
 			})
 		})
 
