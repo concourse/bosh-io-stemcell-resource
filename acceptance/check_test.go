@@ -41,7 +41,9 @@ var _ = Describe("check", func() {
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(session, "10s").Should(gexec.Exit(0))
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
 			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.7"}`))
 			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.5"}`))
 		})
@@ -59,7 +61,9 @@ var _ = Describe("check", func() {
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(session, "10s").Should(gexec.Exit(0))
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
 			Expect(session.Out).To(gbytes.Say(`{"version":"3262.7"}`))
 			Expect(session.Out).To(gbytes.Say(`{"version":"3262.5"}`))
 			Expect(session.Out).To(gbytes.Say(`{"version":"3262.4.1"}`))
@@ -81,7 +85,9 @@ var _ = Describe("check", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session).Should(gexec.Exit(1))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(1))
+
 				Expect(session.Err).To(gbytes.Say("failed unmarshalling: invalid character"))
 			})
 		})

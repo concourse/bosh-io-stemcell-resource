@@ -91,7 +91,8 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "30s").Should(gexec.Exit(0))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
 
 				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
@@ -133,7 +134,9 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "600s").Should(gexec.Exit(0))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
+
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -169,7 +172,9 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "60s").Should(gexec.Exit(0))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
+
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -208,8 +213,9 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session).Should(gexec.Exit(1))
-				Eventually(session.Err).Should(gbytes.Say("permission denied"))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session.Err).To(gbytes.Say("permission denied"))
 			})
 		})
 
@@ -219,8 +225,9 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session, "10s").Should(gexec.Exit(1))
-				Eventually(session.Err).Should(gbytes.Say("failed to find stemcell matching version:"))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session.Err).To(gbytes.Say("failed to find stemcell matching version:"))
 			})
 		})
 
@@ -230,8 +237,9 @@ var _ = Describe("in", func() {
 				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(session).Should(gexec.Exit(1))
-				Eventually(session.Err).Should(gbytes.Say("invalid character"))
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session.Err).To(gbytes.Say("invalid character"))
 			})
 		})
 	})
