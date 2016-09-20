@@ -9,5 +9,8 @@ inputs:
 - name: bosh-io-stemcell-resource
   path: gopath/src/github.com/concourse/bosh-io-stemcell-resource
 
+outputs:
+- name: built-resource
+
 run:
   path: gopath/src/github.com/concourse/bosh-io-stemcell-resource/ci/tests

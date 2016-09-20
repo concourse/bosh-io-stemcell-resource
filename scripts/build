@@ -1,5 +1,13 @@
 #!/bin/bash
 
-go build -o built-in ./cmd/in
-go build -o built-out ./cmd/out
-go build -o built-check ./cmd/check
+set -e -u -x
+
+dest=${1:-built-resource}
+
+mkdir -p $dest
+
+cp Dockerfile $dest
+
+go build -o $dest/in ./cmd/in
+go build -o $dest/out ./cmd/out
+go build -o $dest/check ./cmd/check
