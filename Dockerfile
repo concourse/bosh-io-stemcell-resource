@@ -1,4 +1,5 @@
-FROM concourse/buildroot:curl
+FROM concourse/buildroot:base
 
-ADD assets/ /opt/resource/
-RUN chmod +x /opt/resource/*
+ADD built-check /opt/resource/check
+ADD built-in /opt/resource/in
+ADD built-out /opt/resource/out

@@ -1,0 +1,21 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/blang/semver",
+			"repository": "https://github.com/blang/semver",
+			"vcs": "git",
+			"revision": "60ec3488bfea7cca02b021d106d9911120d25fe9",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/cheggaaa/pb.v1",
+			"repository": "https://gopkg.in/cheggaaa/pb.v1",
+			"vcs": "git",
+			"revision": "9453b2db37f4d8bc63751daca63bbe7049eb5e74",
+			"branch": "master",
+			"notests": true
+		}
+	]
+}
