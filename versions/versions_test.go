@@ -64,4 +64,38 @@ var _ = Describe("Versions", func() {
 			}))
 		})
 	})
+
+	Context("when passed an empty stemcell list and no initial version", func() {
+		var filter versions.Filter
+
+		BeforeEach(func() {
+			stemcells := []boshio.Stemcell{}
+
+			filter = versions.NewFilter("", stemcells)
+		})
+
+		It("returns an empty list", func() {
+			list, err := filter.Versions()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(list).To(BeEmpty())
+		})
+	})
+
+	Context("when passed an empty stemcell list and an initial version", func() {
+		var filter versions.Filter
+
+		BeforeEach(func() {
+			stemcells := []boshio.Stemcell{}
+
+			filter = versions.NewFilter("3232.4", stemcells)
+		})
+
+		It("returns an empty list", func() {
+			list, err := filter.Versions()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(list).To(BeEmpty())
+		})
+	})
 })

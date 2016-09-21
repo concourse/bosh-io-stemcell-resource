@@ -39,6 +39,27 @@ const regularStemcellRequest = `
 	}
 }`
 
+const bothTypesStemcellRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-ubuntu-trusty-go_agent"
+	},
+	"version": {
+		"version": "3262.4"
+	}
+}`
+
+const bothTypesForceRegularStemcellRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-ubuntu-trusty-go_agent",
+		"force_regular": true
+	},
+	"version": {
+		"version": "3262.4"
+	}
+}`
+
 const stemcellRequestWithFileName = `
 {
 	"source": {
@@ -147,6 +168,86 @@ var _ = Describe("in", func() {
 				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3262.9"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-azure-stemcells/bosh-stemcell-3262.9-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"}\]}`, string(checksum))))
 				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 			})
+		})
+	})
+
+	Context("when a stemcell is requested that supports both light and regular", func() {
+		var (
+			command    *exec.Cmd
+			contentDir string
+		)
+
+		BeforeEach(func() {
+			var err error
+			contentDir, err = ioutil.TempDir("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			command = exec.Command(boshioIn, contentDir)
+			command.Stdin = bytes.NewBufferString(bothTypesStemcellRequest)
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(contentDir)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("downloads the light stemcell with metadata", func() {
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
+			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
+			Expect(err).NotTo(HaveOccurred())
+
+			checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+
+			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(urlBytes)).To(ContainSubstring("light"))
+		})
+	})
+
+	Context("when a stemcell is requested that supports both light and regular and force_regular is true", func() {
+		var (
+			command    *exec.Cmd
+			contentDir string
+		)
+
+		BeforeEach(func() {
+			var err error
+			contentDir, err = ioutil.TempDir("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			command = exec.Command(boshioIn, contentDir)
+			command.Stdin = bytes.NewBufferString(bothTypesForceRegularStemcellRequest)
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(contentDir)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("downloads the regular stemcell with metadata", func() {
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
+			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
+			Expect(err).NotTo(HaveOccurred())
+
+			checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+
+			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(urlBytes)).ToNot(ContainSubstring("light"))
 		})
 	})
 

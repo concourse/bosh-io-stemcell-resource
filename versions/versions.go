@@ -22,6 +22,10 @@ func NewFilter(initialVersion string, stemcells []boshio.Stemcell) Filter {
 }
 
 func (f Filter) Versions() ([]List, error) {
+	if len(f.stemcells) == 0 {
+		return []List{}, nil
+	}
+
 	var stemcellVersions []List
 
 	if f.initialVersion != "" {

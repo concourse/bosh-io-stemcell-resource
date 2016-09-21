@@ -15,7 +15,9 @@ resources:
 ## Source Configuration
 
 * `name`: *Required.* The name of the stemcell.
-
+* `force_regular`: *Optional.* Default `false`. By default, the resource will always download light stemcells for IaaSes
+  that support light stemcells. If `force_regular` is `true`, the resource will ignore light stemcells and always
+  download regular stemcells.
 
 ## Behavior
 

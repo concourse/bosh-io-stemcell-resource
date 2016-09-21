@@ -16,10 +16,11 @@ import (
 )
 
 type Stemcell struct {
-	Name    string
-	Version string
-	Light   *Metadata `json:"light"`
-	Regular *Metadata `json:"regular"`
+	Name         string
+	Version      string
+	Light        *Metadata `json:"light"`
+	Regular      *Metadata `json:"regular"`
+	forceRegular bool
 }
 
 type Metadata struct {
@@ -43,7 +44,7 @@ type ranger interface {
 }
 
 func (s Stemcell) Details() Metadata {
-	if s.Light != nil {
+	if s.Light != nil && s.forceRegular == false {
 		return *s.Light
 	}
 
@@ -55,16 +56,16 @@ type Client struct {
 	Bar                  bar
 	Ranger               ranger
 	StemcellMetadataPath string
-	StemcellDownloadPath string
+	ForceRegular         bool
 }
 
-func NewClient(b bar, r ranger) *Client {
+func NewClient(b bar, r ranger, forceRegular bool) *Client {
 	return &Client{
 		Host:                 "https://bosh.io/",
 		Bar:                  b,
 		Ranger:               r,
 		StemcellMetadataPath: "api/v1/stemcells/%s",
-		StemcellDownloadPath: "d/stemcells/%s?v=%s",
+		ForceRegular:         forceRegular,
 	}
 }
 
@@ -91,24 +92,25 @@ func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 		return nil, err
 	}
 
-	return stemcells, nil
-}
-
-func (c *Client) FilterStemcells(version string, stemcells []Stemcell) (Stemcell, error) {
-	var stemcell Stemcell
-
-	for _, s := range stemcells {
-		if s.Version == version {
-			stemcell = s
-			break
+	if c.ForceRegular {
+		for i := 0; i < len(stemcells); i++ {
+			stemcells[i].forceRegular = true
 		}
 	}
 
-	if stemcell.Name == "" {
-		return Stemcell{}, fmt.Errorf("failed to find stemcell matching version: %q", version)
+	return stemcells, nil
+}
+
+func (c *Client) FilterStemcells(lambdaFilter func(Stemcell) bool, stemcells []Stemcell) []Stemcell {
+	var filteredStemcells []Stemcell
+
+	for _, s := range stemcells {
+		if lambdaFilter(s) {
+			filteredStemcells = append(filteredStemcells, s)
+		}
 	}
 
-	return stemcell, nil
+	return filteredStemcells
 }
 
 func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFile io.Writer) error {
@@ -133,9 +135,18 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 	return nil
 }
 
+func (c *Client) SupportsLight(stemcells []Stemcell) bool {
+	for _, s := range stemcells {
+		if s.Light != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
-	stemcellURL := c.Host + c.StemcellDownloadPath
-	resp, err := http.Head(fmt.Sprintf(stemcellURL, stemcell.Name, stemcell.Version))
+	stemcellURL := stemcell.Details().URL
+	resp, err := http.Head(stemcellURL)
 	if err != nil {
 		return err
 	}
