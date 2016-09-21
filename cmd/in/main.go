@@ -16,7 +16,8 @@ const routines = 10
 
 type concourseInRequest struct {
 	Source struct {
-		Name string `json:"name"`
+		Name         string `json:"name"`
+		ForceRegular bool   `json:"force_regular"`
 	} `json:"source"`
 	Params struct {
 		Tarball          bool `json:"tarball"`
@@ -55,17 +56,21 @@ func main() {
 
 	location := os.Args[1]
 
-	client := boshio.NewClient(progress.NewBar(), content.NewRanger(routines))
+	client := boshio.NewClient(progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
 
 	stemcells, err := client.GetStemcells(inRequest.Source.Name)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	stemcell, err := client.FilterStemcells(inRequest.Version.Version, stemcells)
-	if err != nil {
-		log.Fatalln(err)
+	filterFunc := func(stemcell boshio.Stemcell) bool {
+		return stemcell.Version == inRequest.Version.Version
 	}
+	matchingStemcells := client.FilterStemcells(filterFunc, stemcells)
+	if len(matchingStemcells) == 0 {
+		log.Fatalf("failed to find stemcell matching version: '%s'\n", inRequest.Version.Version)
+	}
+	stemcell := matchingStemcells[0]
 
 	dataLocations := []string{"version", "sha1", "url"}
 

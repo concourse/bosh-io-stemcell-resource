@@ -7,6 +7,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
+	"encoding/json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,6 +29,24 @@ const specificVersionRequest = `
 	}
 }`
 
+const lightOnlyForceRegularRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
+		"force_regular": true
+	}
+}`
+
+const bothTypesForceRegularRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-ubuntu-trusty-go_agent",
+		"force_regular": true
+	}
+}`
+
+type stemcellVersion map[string]string
+
 var _ = Describe("check", func() {
 	Context("when no version is specified", func() {
 		var command *exec.Cmd
@@ -44,8 +63,14 @@ var _ = Describe("check", func() {
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
-			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.7"}`))
-			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.5"}`))
+			result := []stemcellVersion{}
+			err = json.Unmarshal(session.Out.Contents(), &result)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result).To(HaveLen(1))
+			Expect(result[0]["version"]).ToNot(BeEmpty())
+			Expect(result[0]["version"]).ToNot(Equal("3262.7"))
+			Expect(result[0]["version"]).ToNot(Equal("3262.5"))
 		})
 	})
 
@@ -64,10 +89,72 @@ var _ = Describe("check", func() {
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
-			Expect(session.Out).To(gbytes.Say(`{"version":"3262.7"}`))
-			Expect(session.Out).To(gbytes.Say(`{"version":"3262.5"}`))
-			Expect(session.Out).To(gbytes.Say(`{"version":"3262.4.1"}`))
-			Expect(session.Out).NotTo(gbytes.Say(`{"version":"3262.2"}`))
+			result := []stemcellVersion{}
+			err = json.Unmarshal(session.Out.Contents(), &result)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result).To(ContainElement(stemcellVersion{
+				"version": "3262.7",
+			}))
+			Expect(result).To(ContainElement(stemcellVersion{
+				"version": "3262.5",
+			}))
+			Expect(result).To(ContainElement(stemcellVersion{
+				"version": "3262.4.1",
+			}))
+			Expect(result).ToNot(ContainElement(stemcellVersion{
+				"version": "3262.2",
+			}))
+		})
+	})
+
+	Context("when `force_regular` is true", func() {
+
+		Context("and regular stemcell versions are available", func() {
+			var command *exec.Cmd
+
+			BeforeEach(func() {
+				command = exec.Command(boshioCheck)
+				command.Stdin = bytes.NewBufferString(bothTypesForceRegularRequest)
+			})
+
+			It("grabs the latest version with a Regular stemcell", func() {
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
+
+				result := []stemcellVersion{}
+				err = json.Unmarshal(session.Out.Contents(), &result)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(result).To(HaveLen(1))
+				Expect(result[0]["version"]).ToNot(BeEmpty())
+			})
+		})
+
+		Context("and only light stemcell versions are available", func() {
+			var command *exec.Cmd
+
+			BeforeEach(func() {
+				command = exec.Command(boshioCheck)
+				command.Stdin = bytes.NewBufferString(lightOnlyForceRegularRequest)
+			})
+
+			It("returns an empty version set", func() {
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
+
+				result := []stemcellVersion{}
+				err = json.Unmarshal(session.Out.Contents(), &result)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(result).To(HaveLen(0))
+			})
 		})
 	})
 

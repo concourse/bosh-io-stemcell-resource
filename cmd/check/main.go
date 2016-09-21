@@ -13,10 +13,11 @@ import (
 
 type concourseCheck struct {
 	Source struct {
-		Name string
+		Name         string `json:"name"`
+		ForceRegular bool   `json:"force_regular"`
 	}
 	Version struct {
-		Version string
+		Version string `json:"version"`
 	}
 }
 
@@ -32,10 +33,25 @@ func main() {
 		log.Fatalf("failed unmarshalling: %s", err)
 	}
 
-	client := boshio.NewClient(nil, nil)
+	client := boshio.NewClient(nil, nil, checkRequest.Source.ForceRegular)
 	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
 	if err != nil {
 		log.Fatalf("failed getting stemcell: %s", err)
+	}
+
+	supportsLight := client.SupportsLight(stemcells)
+	if supportsLight {
+		if checkRequest.Source.ForceRegular {
+			regularFilter := func(stemcell boshio.Stemcell) bool {
+				return stemcell.Regular != nil
+			}
+			stemcells = client.FilterStemcells(regularFilter, stemcells)
+		} else {
+			lightFilter := func(stemcell boshio.Stemcell) bool {
+				return stemcell.Light != nil
+			}
+			stemcells = client.FilterStemcells(lightFilter, stemcells)
+		}
 	}
 
 	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)

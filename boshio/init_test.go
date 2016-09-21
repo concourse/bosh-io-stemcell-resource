@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"fmt"
 	"testing"
 )
 
@@ -22,19 +23,21 @@ var (
 )
 
 type server struct {
-	RedirectHandler http.HandlerFunc
-	TarballHandler  http.HandlerFunc
-	LightAPIHandler http.HandlerFunc
-	HeavyAPIHandler http.HandlerFunc
-	mux             *http.ServeMux
-	s               *httptest.Server
+	RedirectHandler         http.HandlerFunc
+	TarballHandler          http.HandlerFunc
+	LightAPIHandler         http.HandlerFunc
+	HeavyAPIHandler         http.HandlerFunc
+	HeavyAndLightAPIHandler http.HandlerFunc
+	mux                     *http.ServeMux
+	s                       *httptest.Server
 }
 
 func (s *server) Start() {
-	s.mux.HandleFunc("/d/stemcells/different-stemcell", boshioServer.RedirectHandler)
 	s.mux.HandleFunc("/path/to/light-different-stemcell.tgz", boshioServer.TarballHandler)
+	s.mux.HandleFunc("/path/to/heavy-different-stemcell.tgz", boshioServer.TarballHandler)
 	s.mux.HandleFunc("/api/v1/stemcells/some-light-stemcell", boshioServer.LightAPIHandler)
 	s.mux.HandleFunc("/api/v1/stemcells/some-heavy-stemcell", boshioServer.HeavyAPIHandler)
+	s.mux.HandleFunc("/api/v1/stemcells/some-light-and-heavy-stemcell", boshioServer.HeavyAndLightAPIHandler)
 
 	s.s.Start()
 }
@@ -51,26 +54,18 @@ var _ = BeforeEach(func() {
 	router := http.NewServeMux()
 	testServer := httptest.NewUnstartedServer(router)
 	boshioServer = &server{
-		mux:             router,
-		RedirectHandler: redirectHandler,
-		TarballHandler:  tarballHandler,
-		LightAPIHandler: lightAPIHandler,
-		HeavyAPIHandler: heavyAPIHandler,
-		s:               testServer,
+		mux:                     router,
+		TarballHandler:          tarballHandler,
+		LightAPIHandler:         lightAPIHandler,
+		HeavyAPIHandler:         heavyAPIHandler,
+		HeavyAndLightAPIHandler: heavyAndLightAPIHandler,
+		s: testServer,
 	}
 })
 
 var _ = AfterEach(func() {
 	boshioServer.Stop()
 })
-
-func redirectHandler(w http.ResponseWriter, req *http.Request) {
-	magicURL := req.URL
-	magicURL.Path = "/path/to/light-different-stemcell.tgz"
-
-	w.Header().Add("Location", magicURL.String())
-	w.WriteHeader(http.StatusMovedPermanently)
-}
 
 func tarballHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "HEAD" {
@@ -98,25 +93,46 @@ func tarballHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func lightAPIHandler(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte(`[{
+	w.Write([]byte(fmt.Sprintf(`[{
 					"name": "a stemcell",
 					"version": "some version",
 					"light": {
-						"url": "http://example.com",
+						"url": "%spath/to/light-different-stemcell.tgz",
 						"size": 100,
 						"md5": "qqqq",
 						"sha1": "2222"
 					}
-				}]`))
+				}]`, boshioServer.URL())))
 }
 
 func heavyAPIHandler(w http.ResponseWriter, req *http.Request) {
-	w.Write([]byte(`[{
+	w.Write([]byte(fmt.Sprintf(`[{
 					"regular": {
-						"url": "http://example.com/heavy",
+						"url": "%spath/to/heavy-different-stemcell.tgz",
 						"size": 2000,
 						"md5": "zzzz",
 						"sha1": "asdf"
 					}
-				}]`))
+				}]`, boshioServer.URL())))
+}
+
+func heavyAndLightAPIHandler(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(fmt.Sprintf(`[{
+					"regular": {
+						"url": "%spath/to/heavy-different-stemcell.tgz",
+						"size": 2000,
+						"md5": "zzzz",
+						"sha1": "asdf"
+					},
+					"light": {
+						"url": "%spath/to/light-different-stemcell.tgz",
+						"size": 100,
+						"md5": "qqqq",
+						"sha1": "2222"
+					}
+				}]`, boshioServer.URL(), boshioServer.URL())))
+}
+
+func serverPath(path string) string {
+	return fmt.Sprintf("%s%s", boshioServer.URL(), path)
 }
