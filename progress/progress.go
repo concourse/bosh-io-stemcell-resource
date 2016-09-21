@@ -1,13 +1,20 @@
 package progress
 
-import "gopkg.in/cheggaaa/pb.v1"
+import (
+	"os"
+
+	"gopkg.in/cheggaaa/pb.v1"
+)
 
 type Bar struct {
 	*pb.ProgressBar
 }
 
 func NewBar() Bar {
-	return Bar{pb.New(0)}
+	bar := pb.New(0)
+	bar.SetUnits(pb.U_BYTES)
+	bar.Output = os.Stderr
+	return Bar{bar} // shop
 }
 
 func (b Bar) SetTotal(contentLength int64) {

@@ -14,17 +14,29 @@ import (
 
 const routines = 10
 
-type concourseIn struct {
+type concourseInRequest struct {
 	Source struct {
-		Name string
-	}
+		Name string `json:"name"`
+	} `json:"source"`
 	Params struct {
-		Tarball          bool
+		Tarball          bool `json:"tarball"`
 		PreserveFilename bool `json:"preserve_filename"`
-	}
+	} `json:"params"`
 	Version struct {
-		Version string
-	}
+		Version string `json:"version"`
+	} `json:"version"`
+}
+
+type concourseInResponse struct {
+	Version struct {
+		Version string `json:"version"`
+	} `json:"version"`
+	Metadata []concourseMetadataField `json:"metadata"`
+}
+
+type concourseMetadataField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 func main() {
@@ -33,7 +45,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	var inRequest concourseIn
+	var inRequest concourseInRequest
 	inRequest.Params.Tarball = true
 
 	err = json.Unmarshal(rawJSON, &inRequest)
@@ -76,4 +88,9 @@ func main() {
 			log.Fatalln(err)
 		}
 	}
+
+	json.NewEncoder(os.Stdout).Encode(concourseInResponse{
+		Version:  inRequest.Version,
+		Metadata: []concourseMetadataField{}, // TODO: return sha and url
+	})
 }

@@ -93,6 +93,7 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.4"},"metadata":\[\]}`))
 
 				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
@@ -136,6 +137,7 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.9"},"metadata":\[\]}`))
 
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
@@ -174,6 +176,7 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.12"},"metadata":\[\]}`))
 
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
