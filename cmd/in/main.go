@@ -90,7 +90,10 @@ func main() {
 	}
 
 	json.NewEncoder(os.Stdout).Encode(concourseInResponse{
-		Version:  inRequest.Version,
-		Metadata: []concourseMetadataField{}, // TODO: return sha and url
+		Version: inRequest.Version,
+		Metadata: []concourseMetadataField{
+			{Name: "url", Value: stemcell.Details().URL},
+			{Name: "sha1", Value: stemcell.Details().SHA1},
+		},
 	})
 }

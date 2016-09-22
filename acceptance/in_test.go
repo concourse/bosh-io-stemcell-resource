@@ -93,7 +93,7 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.4"},"metadata":\[\]}`))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.4"},"metadata":\[{"name":"url","value":"https://d26ekeud912fhb.cloudfront.net/bosh-stemcell/aws/light-bosh-stemcell-3262.4-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"58b80c916ad523defea9e661045b7fc700a9ec4f"}\]}`))
 
 				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
@@ -137,13 +137,14 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.9"},"metadata":\[\]}`))
 
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
 				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
+
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3262.9"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-azure-stemcells/bosh-stemcell-3262.9-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"}\]}`, string(checksum))))
 				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 			})
 		})
@@ -176,12 +177,13 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.12"},"metadata":\[\]}`))
 
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
 				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3262.12"},"metadata":\[{"name":"url","value":"https://d26ekeud912fhb.cloudfront.net/bosh-stemcell/aws/light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"}\]}`, string(checksum))))
+
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 			})
