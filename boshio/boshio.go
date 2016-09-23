@@ -11,7 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Stemcell struct {
@@ -160,18 +161,13 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 	c.Bar.SetTotal(int64(resp.ContentLength))
 	c.Bar.Kickoff()
 
-	var wg sync.WaitGroup
-	finish := make(chan error)
-	broken := make(chan error)
+	var g errgroup.Group
 	for _, r := range ranges {
-		wg.Add(1)
-		go func(byteRange string, errChan chan<- error) {
-			defer wg.Done()
-
+		byteRange := r
+		g.Go(func() error {
 			req, err := http.NewRequest("GET", stemcellURL, nil)
 			if err != nil {
-				errChan <- err
-				return
+				return err
 			}
 
 			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
@@ -179,51 +175,40 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				errChan <- err
-				return
+				return err
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusPartialContent {
-				errChan <- fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
-				return
+				return fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
 			}
 
 			respBytes, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				errChan <- err
-				return
+				return err
 			}
 
 			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
 			if err != nil {
-				errChan <- err
-				return
+				return err
 			}
 
 			bytesWritten, err := stemcellData.WriteAt(respBytes, int64(offset))
 			if err != nil {
-				errChan <- err
-				return
+				return err
 			}
 
 			c.Bar.Add(bytesWritten)
-		}(r, broken)
+
+			return nil
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(finish)
-	}()
-
-	select {
-	case <-finish:
-		c.Bar.Finish()
-	case err := <-broken:
-		if err != nil {
-			return err
-		}
+	if err := g.Wait(); err != nil {
+		return err
 	}
+
+	c.Bar.Finish()
 
 	computedSHA := sha1.New()
 	_, err = io.Copy(computedSHA, stemcellData)
