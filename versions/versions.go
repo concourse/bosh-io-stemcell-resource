@@ -30,7 +30,7 @@ func (f Filter) Versions() ([]List, error) {
 			panic(err)
 		}
 
-		r, err := semver.ParseRange(fmt.Sprintf(">%s", parsedVersion.String()))
+		r, err := semver.ParseRange(fmt.Sprintf(">=%s", parsedVersion.String()))
 		if err != nil {
 			panic(err)
 		}

@@ -60,6 +60,7 @@ var _ = Describe("Versions", func() {
 				{"version": "3232.8"},
 				{"version": "3232.7.1"},
 				{"version": "3232.7"},
+				{"version": "3232.4"},
 			}))
 		})
 	})
