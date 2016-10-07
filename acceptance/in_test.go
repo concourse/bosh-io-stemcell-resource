@@ -247,7 +247,7 @@ var _ = Describe("in", func() {
 
 			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(urlBytes)).ToNot(ContainSubstring("light"))
+			Expect(string(urlBytes)).NotTo(ContainSubstring("light"))
 		})
 	})
 
