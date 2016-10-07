@@ -39,7 +39,7 @@ var _ = Describe("Boshio", func() {
 			stemcells, err := client.GetStemcells("some-light-stemcell")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(stemcells).To(Equal([]boshio.Stemcell{
+			Expect(stemcells).To(Equal(boshio.Stemcells{
 				{
 					Name:    "a stemcell",
 					Version: "some version",
@@ -84,112 +84,6 @@ var _ = Describe("Boshio", func() {
 					_, err := client.GetStemcells("some-light-stemcell")
 					Expect(err).To(MatchError(ContainSubstring("invalid character")))
 				})
-			})
-		})
-	})
-
-	Describe("Details", func() {
-		It("returns heavy stemcell metadata", func() {
-			boshioServer.Start()
-			stemcells, err := client.GetStemcells("some-heavy-stemcell")
-			Expect(err).NotTo(HaveOccurred())
-
-			metadata := stemcells[0].Details()
-			Expect(metadata).To(Equal(boshio.Metadata{
-				URL:  serverPath("path/to/heavy-different-stemcell.tgz"),
-				Size: 2000,
-				MD5:  "zzzz",
-				SHA1: "asdf",
-			}))
-		})
-
-		It("returns light stemcell metadata", func() {
-			boshioServer.Start()
-			stemcells, err := client.GetStemcells("some-light-stemcell")
-			Expect(err).NotTo(HaveOccurred())
-
-			metadata := stemcells[0].Details()
-			Expect(metadata).To(Equal(boshio.Metadata{
-				URL:  serverPath("path/to/light-different-stemcell.tgz"),
-				Size: 100,
-				MD5:  "qqqq",
-				SHA1: "2222",
-			}))
-		})
-
-		It("returns light stemcell metadata if both types are available", func() {
-			boshioServer.Start()
-			stemcells, err := client.GetStemcells("some-light-and-heavy-stemcell")
-			Expect(err).NotTo(HaveOccurred())
-
-			metadata := stemcells[0].Details()
-			Expect(metadata).To(Equal(boshio.Metadata{
-				URL:  serverPath("path/to/light-different-stemcell.tgz"),
-				Size: 100,
-				MD5:  "qqqq",
-				SHA1: "2222",
-			}))
-		})
-
-		Context("when force_regular is true", func() {
-			BeforeEach(func() {
-				forceRegular = true
-			})
-
-			It("returns heavy stemcell metadata if both types are available and force_regular is true", func() {
-				boshioServer.Start()
-				stemcells, err := client.GetStemcells("some-light-and-heavy-stemcell")
-				Expect(err).NotTo(HaveOccurred())
-
-				metadata := stemcells[0].Details()
-				Expect(metadata).To(Equal(boshio.Metadata{
-					URL:  serverPath("path/to/heavy-different-stemcell.tgz"),
-					Size: 2000,
-					MD5:  "zzzz",
-					SHA1: "asdf",
-				}))
-			})
-		})
-	})
-
-	Describe("FilterStemcells", func() {
-		var stemcellList []boshio.Stemcell
-
-		BeforeEach(func() {
-			stemcellList = []boshio.Stemcell{
-				{
-					Name:    "some-stemcell",
-					Version: "111.1",
-				},
-				{
-					Name:    "some-other-stemcell-same-version",
-					Version: "111.1",
-				},
-				{
-					Name:    "some-other-stemcell",
-					Version: "2222",
-				},
-			}
-		})
-
-		It("returns stemcells matching the criteria from the list", func() {
-			lambdaVersion := func(stemcell boshio.Stemcell) bool {
-				return stemcell.Version == "111.1"
-			}
-			stemcells := client.FilterStemcells(lambdaVersion, stemcellList)
-			Expect(stemcells).To(Equal([]boshio.Stemcell{
-				{Name: "some-stemcell", Version: "111.1"},
-				{Name: "some-other-stemcell-same-version", Version: "111.1"},
-			}))
-		})
-
-		Context("when the stemcell is not in the list", func() {
-			It("returns a zero-length array", func() {
-				nonmatchingFilter := func(stemcell boshio.Stemcell) bool {
-					return stemcell.Version == "aaaaa"
-				}
-				stemcells := client.FilterStemcells(nonmatchingFilter, stemcellList)
-				Expect(stemcells).To(HaveLen(0))
 			})
 		})
 	})
@@ -257,41 +151,6 @@ var _ = Describe("Boshio", func() {
 				})
 			})
 		})
-	})
-
-	Describe("SupportsLight", func() {
-		It("returns true when light stemcells exist", func() {
-			stemcellList := []boshio.Stemcell{
-				{
-					Name:    "some-stemcell",
-					Version: "111.1",
-					Light:   &boshio.Metadata{},
-					Regular: &boshio.Metadata{},
-				},
-				{
-					Name:    "some-other-stemcell",
-					Version: "2222",
-					Regular: &boshio.Metadata{},
-				},
-			}
-			Expect(client.SupportsLight(stemcellList)).To(BeTrue(), "Expected client to find light stemcell, but it did not")
-		})
-		It("returns false when only regular stemcells exist", func() {
-			stemcellList := []boshio.Stemcell{
-				{
-					Name:    "some-stemcell",
-					Version: "111.1",
-					Regular: &boshio.Metadata{},
-				},
-				{
-					Name:    "some-other-stemcell",
-					Version: "2222",
-					Regular: &boshio.Metadata{},
-				},
-			}
-			Expect(client.SupportsLight(stemcellList)).To(BeFalse(), "Expected client to not find light stemcell, but it did")
-		})
-
 	})
 
 	Describe("DownloadStemcell", func() {

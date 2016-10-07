@@ -65,12 +65,12 @@ var _ = Describe("check", func() {
 
 			result := []stemcellVersion{}
 			err = json.Unmarshal(session.Out.Contents(), &result)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(HaveLen(1))
-			Expect(result[0]["version"]).ToNot(BeEmpty())
-			Expect(result[0]["version"]).ToNot(Equal("3262.7"))
-			Expect(result[0]["version"]).ToNot(Equal("3262.5"))
+			Expect(result[0]["version"]).NotTo(BeEmpty())
+			Expect(result[0]["version"]).NotTo(Equal("3262.7"))
+			Expect(result[0]["version"]).NotTo(Equal("3262.5"))
 		})
 	})
 
@@ -91,7 +91,7 @@ var _ = Describe("check", func() {
 
 			result := []stemcellVersion{}
 			err = json.Unmarshal(session.Out.Contents(), &result)
-			Expect(err).ToNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(ContainElement(stemcellVersion{
 				"version": "3262.7",
@@ -102,14 +102,13 @@ var _ = Describe("check", func() {
 			Expect(result).To(ContainElement(stemcellVersion{
 				"version": "3262.4.1",
 			}))
-			Expect(result).ToNot(ContainElement(stemcellVersion{
+			Expect(result).NotTo(ContainElement(stemcellVersion{
 				"version": "3262.2",
 			}))
 		})
 	})
 
 	Context("when `force_regular` is true", func() {
-
 		Context("and regular stemcell versions are available", func() {
 			var command *exec.Cmd
 
@@ -127,10 +126,10 @@ var _ = Describe("check", func() {
 
 				result := []stemcellVersion{}
 				err = json.Unmarshal(session.Out.Contents(), &result)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(result).To(HaveLen(1))
-				Expect(result[0]["version"]).ToNot(BeEmpty())
+				Expect(result[0]["version"]).NotTo(BeEmpty())
 			})
 		})
 
@@ -151,7 +150,7 @@ var _ = Describe("check", func() {
 
 				result := []stemcellVersion{}
 				err = json.Unmarshal(session.Out.Contents(), &result)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(result).To(HaveLen(0))
 			})

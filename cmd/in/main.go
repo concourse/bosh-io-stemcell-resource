@@ -63,14 +63,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	filterFunc := func(stemcell boshio.Stemcell) bool {
-		return stemcell.Version == inRequest.Version.Version
-	}
-	matchingStemcells := client.FilterStemcells(filterFunc, stemcells)
-	if len(matchingStemcells) == 0 {
+	stemcell, ok := stemcells.FindStemcellByVersion(inRequest.Version.Version)
+	if !ok {
 		log.Fatalf("failed to find stemcell matching version: '%s'\n", inRequest.Version.Version)
 	}
-	stemcell := matchingStemcells[0]
 
 	dataLocations := []string{"version", "sha1", "url"}
 

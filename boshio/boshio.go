@@ -14,21 +14,6 @@ import (
 	"sync"
 )
 
-type Stemcell struct {
-	Name         string
-	Version      string
-	Light        *Metadata `json:"light"`
-	Regular      *Metadata `json:"regular"`
-	forceRegular bool
-}
-
-type Metadata struct {
-	URL  string
-	Size int64
-	MD5  string
-	SHA1 string
-}
-
 //go:generate counterfeiter -o ../fakes/bar.go --fake-name Bar . bar
 type bar interface {
 	SetTotal(contentLength int64)
@@ -40,14 +25,6 @@ type bar interface {
 //go:generate counterfeiter -o ../fakes/ranger.go --fake-name Ranger . ranger
 type ranger interface {
 	BuildRange(contentLength int64) ([]string, error)
-}
-
-func (s Stemcell) Details() Metadata {
-	if s.Light != nil && s.forceRegular == false {
-		return *s.Light
-	}
-
-	return *s.Regular
 }
 
 type Client struct {
@@ -68,7 +45,7 @@ func NewClient(b bar, r ranger, forceRegular bool) *Client {
 	}
 }
 
-func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
+func (c *Client) GetStemcells(name string) (Stemcells, error) {
 	metadataURL := c.Host + c.StemcellMetadataPath
 
 	resp, err := http.Get(fmt.Sprintf(metadataURL, name))
@@ -93,23 +70,11 @@ func (c *Client) GetStemcells(name string) ([]Stemcell, error) {
 
 	if c.ForceRegular {
 		for i := 0; i < len(stemcells); i++ {
-			stemcells[i].forceRegular = true
+			stemcells[i].ForceRegular = true
 		}
 	}
 
 	return stemcells, nil
-}
-
-func (c *Client) FilterStemcells(lambdaFilter func(Stemcell) bool, stemcells []Stemcell) []Stemcell {
-	var filteredStemcells []Stemcell
-
-	for _, s := range stemcells {
-		if lambdaFilter(s) {
-			filteredStemcells = append(filteredStemcells, s)
-		}
-	}
-
-	return filteredStemcells
 }
 
 func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFile io.Writer) error {
@@ -132,15 +97,6 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 	}
 
 	return nil
-}
-
-func (c *Client) SupportsLight(stemcells []Stemcell) bool {
-	for _, s := range stemcells {
-		if s.Light != nil {
-			return true
-		}
-	}
-	return false
 }
 
 func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
