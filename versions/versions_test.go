@@ -27,8 +27,38 @@ var _ = Describe("Versions", func() {
 			list, err := filter.Versions()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(list).To(Equal([]versions.List{
+			Expect(list).To(Equal(versions.StemcellVersions{
 				{"version": "3232.9"},
+			}))
+		})
+	})
+
+	Context("when the versions are out of order", func() {
+		var filter versions.Filter
+
+		BeforeEach(func() {
+			stemcells := []boshio.Stemcell{
+				{Version: "3232"},
+				{Version: "3232.8"},
+				{Version: "3232.9"},
+				{Version: "3232.1"},
+				{Version: "3330.3"},
+				{Version: "3333"},
+			}
+
+			filter = versions.NewFilter("3232.1", stemcells)
+		})
+
+		It("orders them perfectly", func() {
+			list, err := filter.Versions()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(list).To(Equal(versions.StemcellVersions{
+				{"version": "3333"},
+				{"version": "3330.3"},
+				{"version": "3232.9"},
+				{"version": "3232.8"},
+				{"version": "3232.1"},
 			}))
 		})
 	})
@@ -55,7 +85,7 @@ var _ = Describe("Versions", func() {
 			list, err := filter.Versions()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(list).To(Equal([]versions.List{
+			Expect(list).To(Equal(versions.StemcellVersions{
 				{"version": "3232.9"},
 				{"version": "3232.8"},
 				{"version": "3232.7.1"},
