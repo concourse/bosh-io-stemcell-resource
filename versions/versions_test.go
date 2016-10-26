@@ -54,11 +54,11 @@ var _ = Describe("Versions", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(list).To(Equal(versions.StemcellVersions{
-				{"version": "3333"},
-				{"version": "3330.3"},
-				{"version": "3232.9"},
-				{"version": "3232.8"},
 				{"version": "3232.1"},
+				{"version": "3232.8"},
+				{"version": "3232.9"},
+				{"version": "3330.3"},
+				{"version": "3333"},
 			}))
 		})
 	})
@@ -86,11 +86,11 @@ var _ = Describe("Versions", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(list).To(Equal(versions.StemcellVersions{
-				{"version": "3232.9"},
-				{"version": "3232.8"},
-				{"version": "3232.7.1"},
-				{"version": "3232.7"},
 				{"version": "3232.4"},
+				{"version": "3232.7"},
+				{"version": "3232.7.1"},
+				{"version": "3232.8"},
+				{"version": "3232.9"},
 			}))
 		})
 	})

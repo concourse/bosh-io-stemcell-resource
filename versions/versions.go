@@ -77,5 +77,5 @@ func (sv StemcellVersions) Less(i, j int) bool {
 		panic(err)
 	}
 
-	return second.LT(first)
+	return first.LT(second)
 }
