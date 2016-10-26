@@ -13,8 +13,9 @@ import (
 
 type concourseCheck struct {
 	Source struct {
-		Name         string `json:"name"`
-		ForceRegular bool   `json:"force_regular"`
+		Name          string `json:"name"`
+		ForceRegular  bool   `json:"force_regular"`
+		VersionFamily string `json:"version_family"`
 	}
 	Version struct {
 		Version string `json:"version"`
@@ -37,7 +38,11 @@ func main() {
 	}
 
 	stemcells = stemcells.FilterByType()
-	filter := versions.NewFilter(checkRequest.Version.Version, stemcells)
+	filter := versions.NewFilter(
+		checkRequest.Version.Version,
+		stemcells,
+		checkRequest.Source.VersionFamily,
+	)
 
 	filteredVersions, err := filter.Versions()
 	if err != nil {
