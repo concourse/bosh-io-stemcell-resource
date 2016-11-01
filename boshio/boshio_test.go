@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 	"github.com/concourse/bosh-io-stemcell-resource/fakes"
@@ -16,6 +17,7 @@ import (
 
 var _ = Describe("Boshio", func() {
 	var (
+		httpClient   boshio.HTTPClient
 		client       *boshio.Client
 		ranger       *fakes.Ranger
 		bar          *fakes.Bar
@@ -26,11 +28,8 @@ var _ = Describe("Boshio", func() {
 		ranger = &fakes.Ranger{}
 		bar = &fakes.Bar{}
 		forceRegular = false
-	})
-
-	JustBeforeEach(func() {
-		client = boshio.NewClient(bar, ranger, forceRegular)
-		client.Host = boshioServer.URL()
+		httpClient = boshio.NewHTTPClient(boshioServer.URL(), 800*time.Millisecond)
+		client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
 	})
 
 	Describe("GetStemcells", func() {
@@ -67,8 +66,7 @@ var _ = Describe("Boshio", func() {
 			})
 
 			Context("when the get fails", func() {
-				It("returns an error", func() {
-					client.Host = "%%%%"
+				XIt("returns an error", func() {
 					_, err := client.GetStemcells("some-light-stemcell")
 					Expect(err).To(MatchError(ContainSubstring("invalid URL escape")))
 				})

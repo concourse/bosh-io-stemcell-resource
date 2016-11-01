@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 	"github.com/concourse/bosh-io-stemcell-resource/versions"
@@ -33,7 +34,9 @@ func main() {
 		log.Fatalf("failed unmarshalling: %s", err)
 	}
 
-	client := boshio.NewClient(nil, nil, checkRequest.Source.ForceRegular)
+	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
+
+	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular)
 	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
 	if err != nil {
 		log.Fatalf("failed getting stemcell: %s", err)

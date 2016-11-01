@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 	"github.com/concourse/bosh-io-stemcell-resource/content"
@@ -56,7 +57,9 @@ func main() {
 
 	location := os.Args[1]
 
-	client := boshio.NewClient(progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
+	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
+
+	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
 
 	stemcells, err := client.GetStemcells(inRequest.Source.Name)
 	if err != nil {

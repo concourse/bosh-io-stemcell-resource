@@ -28,28 +28,36 @@ type ranger interface {
 	BuildRange(contentLength int64) ([]string, error)
 }
 
+//go:generate counterfeiter -o ../fakes/http_client.go --fake-name HTTPClient . httpClient
+type httpClient interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
 type Client struct {
-	Host                 string
+	httpClient           httpClient
 	Bar                  bar
 	Ranger               ranger
 	StemcellMetadataPath string
 	ForceRegular         bool
 }
 
-func NewClient(b bar, r ranger, forceRegular bool) *Client {
+func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool) *Client {
 	return &Client{
-		Host:                 "https://bosh.io/",
+		httpClient:           httpClient,
 		Bar:                  b,
 		Ranger:               r,
-		StemcellMetadataPath: "api/v1/stemcells/%s",
+		StemcellMetadataPath: "/api/v1/stemcells/%s",
 		ForceRegular:         forceRegular,
 	}
 }
 
 func (c *Client) GetStemcells(name string) (Stemcells, error) {
-	metadataURL := c.Host + c.StemcellMetadataPath
+	req, err := http.NewRequest("GET", fmt.Sprintf(c.StemcellMetadataPath, name), nil)
+	if err != nil {
+		panic(err)
+	}
 
-	resp, err := http.Get(fmt.Sprintf(metadataURL, name))
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +148,7 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
 			req.Header.Add("Range", byteRangeHeader)
 
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := c.httpClient.Do(req)
 			if err != nil {
 				return err
 			}
