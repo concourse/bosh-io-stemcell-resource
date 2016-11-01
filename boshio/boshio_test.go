@@ -2,10 +2,13 @@ package boshio_test
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
@@ -215,6 +218,46 @@ var _ = Describe("Boshio", func() {
 					SHA1: "2222",
 				},
 			}
+		})
+
+		Context("when an io error occurs", func() {
+			FIt("retries the request", func() {
+				httpClient := &fakes.HTTPClient{}
+
+				var (
+					responses  []*http.Response
+					httpErrors []error
+				)
+
+				httpClient.DoStub = func(req *http.Request) (*http.Response, error) {
+					return responses[httpClient.DoCallCount()], httpErrors[httpClient.DoCallCount()]
+				}
+
+				responses = []*http.Response{
+					{StatusCode: http.StatusOK, Body: nil, ContentLength: 100, Request: &http.Request{URL: &url.URL{Scheme: "https", Host: "example.com"}}},
+					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(strings.NewReader(""))},
+					{StatusCode: http.StatusOK, Body: ioutil.NopCloser(strings.NewReader("something"))},
+				}
+
+				httpErrors = []error{
+					nil,
+					io.EOF,
+					nil,
+				}
+
+				client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
+
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell(stubStemcell, location, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+			})
 		})
 
 		Context("when the range cannot be constructed", func() {

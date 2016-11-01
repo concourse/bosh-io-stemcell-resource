@@ -109,6 +109,7 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 }
 
 func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
+	// missed an http call here
 	stemcellURL := stemcell.Details().URL
 	resp, err := http.Head(stemcellURL)
 	if err != nil {
