@@ -109,14 +109,17 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 }
 
 func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
-	// missed an http call here
-	stemcellURL := stemcell.Details().URL
-	resp, err := http.Head(stemcellURL)
+	req, err := http.NewRequest("HEAD", stemcell.Details().URL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to construct HEAD request: %s", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 
-	stemcellURL = resp.Request.URL.String()
+	stemcellURL := resp.Request.URL.String()
 
 	ranges, err := c.Ranger.BuildRange(resp.ContentLength)
 	if err != nil {
@@ -141,30 +144,13 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 	for _, r := range ranges {
 		byteRange := r
 		g.Go(func() error {
-			req, err := http.NewRequest("GET", stemcellURL, nil)
-			if err != nil {
-				return err
-			}
-
-			byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
-			req.Header.Add("Range", byteRangeHeader)
-
-			resp, err := c.httpClient.Do(req)
-			if err != nil {
-				return err
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusPartialContent {
-				return fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
-			}
-
-			respBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return err
-			}
 
 			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
+			if err != nil {
+				return err
+			}
+
+			respBytes, err := c.retryableRequest(stemcellURL, byteRange)
 			if err != nil {
 				return err
 			}
@@ -197,4 +183,37 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 	}
 
 	return nil
+}
+
+func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, error) {
+	req, err := http.NewRequest("GET", stemcellURL, nil)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
+	req.Header.Add("Range", byteRangeHeader)
+
+Retry:
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusPartialContent {
+		return []byte{}, fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
+	}
+
+	var respBytes []byte
+	respBytes, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		if err == io.ErrUnexpectedEOF {
+			goto Retry
+		}
+
+		return []byte{}, err
+	}
+
+	return respBytes, err
 }

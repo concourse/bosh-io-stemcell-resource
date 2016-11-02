@@ -18,6 +18,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type EOFReader struct{}
+
+func (e EOFReader) Read(p []byte) (int, error) {
+	return 0, io.ErrUnexpectedEOF
+}
+
 var _ = Describe("Boshio", func() {
 	var (
 		httpClient   boshio.HTTPClient
@@ -221,8 +227,9 @@ var _ = Describe("Boshio", func() {
 		})
 
 		Context("when an io error occurs", func() {
-			FIt("retries the request", func() {
+			It("retries the request", func() {
 				httpClient := &fakes.HTTPClient{}
+				ranger.BuildRangeReturns([]string{"0-9"}, nil)
 
 				var (
 					responses  []*http.Response
@@ -230,25 +237,33 @@ var _ = Describe("Boshio", func() {
 				)
 
 				httpClient.DoStub = func(req *http.Request) (*http.Response, error) {
-					return responses[httpClient.DoCallCount()], httpErrors[httpClient.DoCallCount()]
+					count := httpClient.DoCallCount() - 1
+					return responses[count], httpErrors[count]
 				}
 
 				responses = []*http.Response{
-					{StatusCode: http.StatusOK, Body: nil, ContentLength: 100, Request: &http.Request{URL: &url.URL{Scheme: "https", Host: "example.com"}}},
-					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(strings.NewReader(""))},
-					{StatusCode: http.StatusOK, Body: ioutil.NopCloser(strings.NewReader("something"))},
+					{StatusCode: http.StatusOK, Body: nil, ContentLength: 10, Request: &http.Request{URL: &url.URL{Scheme: "https", Host: "example.com", Path: "hello"}}},
+					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(EOFReader{})},
+					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(strings.NewReader("hello good"))},
 				}
 
-				httpErrors = []error{
-					nil,
-					io.EOF,
-					nil,
-				}
+				httpErrors = []error{nil, nil, nil}
 
 				client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
 
 				location, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
+
+				stubStemcell := boshio.Stemcell{
+					Name:    "different-stemcell",
+					Version: "2222",
+					Regular: &boshio.Metadata{
+						URL:  serverPath("path/to/light-different-stemcell.tgz"),
+						Size: 100,
+						MD5:  "qqqq",
+						SHA1: "1c36c7afa4e21e2ccc0c386f790560672534723a",
+					},
+				}
 
 				err = client.DownloadStemcell(stubStemcell, location, false)
 				Expect(err).NotTo(HaveOccurred())
@@ -256,7 +271,25 @@ var _ = Describe("Boshio", func() {
 				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+				Expect(string(content)).To(Equal("hello good"))
+			})
+		})
+
+		Context("when the HEAD request cannot be constructed", func() {
+			It("returns an error", func() {
+				stubStemcell := boshio.Stemcell{
+					Name:    "different-stemcell",
+					Version: "2222",
+					Regular: &boshio.Metadata{
+						URL:  "%%%%",
+						Size: 100,
+						MD5:  "qqqq",
+						SHA1: "1c36c7afa4e21e2ccc0c386f790560672534723a",
+					},
+				}
+
+				err := client.DownloadStemcell(stubStemcell, "", false)
+				Expect(err).To(MatchError(ContainSubstring("failed to construct HEAD request:")))
 			})
 		})
 
