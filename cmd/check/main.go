@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -23,15 +22,10 @@ type concourseCheck struct {
 }
 
 func main() {
-	rawJSON, err := ioutil.ReadAll(os.Stdin)
+	var checkRequest concourseCheck
+	err := json.NewDecoder(os.Stdin).Decode(&checkRequest)
 	if err != nil {
 		log.Fatalf("failed reading json: %s", err)
-	}
-
-	var checkRequest concourseCheck
-	err = json.Unmarshal(rawJSON, &checkRequest)
-	if err != nil {
-		log.Fatalf("failed unmarshalling: %s", err)
 	}
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)

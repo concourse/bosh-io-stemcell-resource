@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -42,15 +41,10 @@ type concourseMetadataField struct {
 }
 
 func main() {
-	rawJSON, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	var inRequest concourseInRequest
 	inRequest.Params.Tarball = true
 
-	err = json.Unmarshal(rawJSON, &inRequest)
+	err := json.NewDecoder(os.Stdin).Decode(&inRequest)
 	if err != nil {
 		log.Fatalln(err)
 	}

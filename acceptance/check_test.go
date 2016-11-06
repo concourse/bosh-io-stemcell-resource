@@ -182,7 +182,7 @@ var _ = Describe("check", func() {
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(1))
 
-				Expect(session.Err).To(gbytes.Say("failed unmarshalling: invalid character"))
+				Expect(session.Err).To(gbytes.Say("failed reading json: invalid character"))
 			})
 		})
 	})
