@@ -94,15 +94,22 @@ var _ = Describe("check", func() {
 			err = json.Unmarshal(session.Out.Contents(), &result)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(result).To(ContainElement(stemcellVersion{
-				"version": "3262.7",
+			Expect(result[0]).To(Equal(stemcellVersion{
+				"version": "3262.4",
 			}))
-			Expect(result).To(ContainElement(stemcellVersion{
-				"version": "3262.5",
-			}))
-			Expect(result).To(ContainElement(stemcellVersion{
+
+			Expect(result[1]).To(Equal(stemcellVersion{
 				"version": "3262.4.1",
 			}))
+
+			Expect(result[2]).To(Equal(stemcellVersion{
+				"version": "3262.5",
+			}))
+
+			Expect(result[3]).To(Equal(stemcellVersion{
+				"version": "3262.7",
+			}))
+
 			Expect(result).NotTo(ContainElement(stemcellVersion{
 				"version": "3262.2",
 			}))
