@@ -8,25 +8,34 @@ import (
 	"time"
 )
 
-type HTTPClient struct {
-	host    string
-	timeout time.Duration
-	wait    time.Duration
-	client  *http.Client
-}
-
-func NewHTTPClient(host string, timeout time.Duration) HTTPClient {
+func NewHTTPClient(host string, wait time.Duration) HTTPClient {
 	return HTTPClient{
-		host: host,
-		wait: 1 * time.Second,
-		client: &http.Client{
-			Timeout: timeout,
+		Host: host,
+		Wait: wait,
+		Client: &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+
+				Dial: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 0, // don't send keepalive TCP messages
+				}).Dial,
+
+				TLSHandshakeTimeout: 60 * time.Second,
+				DisableKeepAlives:   true,
+			},
 		},
 	}
 }
 
+type HTTPClient struct {
+	Host   string
+	Wait   time.Duration
+	Client *http.Client
+}
+
 func (h HTTPClient) Do(req *http.Request) (*http.Response, error) {
-	root, err := url.Parse(h.host)
+	root, err := url.Parse(h.Host)
 	if err != nil {
 		return &http.Response{}, fmt.Errorf("failed to parse URL: %s", err)
 	}
@@ -39,13 +48,12 @@ func (h HTTPClient) Do(req *http.Request) (*http.Response, error) {
 	var resp *http.Response
 
 	for {
-		resp, err = h.client.Do(req)
+		resp, err = h.Client.Do(req)
 		if netErr, ok := err.(net.Error); ok {
 			if netErr.Temporary() {
-				time.Sleep(h.wait)
+				time.Sleep(h.Wait)
 				continue
 			}
-			break
 		}
 		break
 	}

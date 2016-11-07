@@ -1,6 +1,7 @@
 package boshio_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,33 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type tempError struct {
+	error
+}
+
+func (te tempError) Temporary() bool {
+	return true
+}
+
+func (te tempError) Timeout() bool {
+	return false
+}
+
+type fakeTransport struct {
+	count int
+}
+
+func (f *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if f.count != 1 {
+		f.count++
+		return nil, tempError{errors.New("boom")}
+	}
+
+	return &http.Response{StatusCode: http.StatusOK}, nil
+}
+
 var _ = Describe("HTTPClient", func() {
+	const waitTime = 10 * time.Millisecond
 	Describe("Do", func() {
 		It("makes an http request", func() {
 			var (
@@ -29,7 +56,7 @@ var _ = Describe("HTTPClient", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}))
 
-			client := boshio.NewHTTPClient(server.URL, 500*time.Millisecond)
+			client := boshio.NewHTTPClient(server.URL, waitTime)
 
 			request, err := http.NewRequest("POST", "/more/path", strings.NewReader(`{"test": "something"}`))
 			Expect(err).NotTo(HaveOccurred())
@@ -55,7 +82,7 @@ var _ = Describe("HTTPClient", func() {
 					w.WriteHeader(http.StatusTeapot)
 				}))
 
-				client := boshio.NewHTTPClient(stemcells.URL, 500*time.Millisecond)
+				client := boshio.NewHTTPClient(stemcells.URL, waitTime)
 
 				request, err := http.NewRequest("POST", amazon.URL, strings.NewReader(`{"test": "something"}`))
 				Expect(err).NotTo(HaveOccurred())
@@ -69,18 +96,11 @@ var _ = Describe("HTTPClient", func() {
 
 		Context("when the request has a temporary error", func() {
 			It("retries the request", func() {
-				var numRequest int
-				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-					switch numRequest {
-					case 0:
-						time.Sleep(500 * time.Millisecond)
-					case 1:
-						time.Sleep(50 * time.Millisecond)
-					}
-					numRequest++
-				}))
-
-				client := boshio.NewHTTPClient(server.URL, 100*time.Millisecond)
+				client := boshio.HTTPClient{
+					Host:   "example.com",
+					Wait:   waitTime,
+					Client: &http.Client{Transport: &fakeTransport{}},
+				}
 
 				request, err := http.NewRequest("GET", "/different/path", nil)
 				Expect(err).NotTo(HaveOccurred())
@@ -95,7 +115,7 @@ var _ = Describe("HTTPClient", func() {
 		Context("when an error occurs", func() {
 			Context("when the host cannot be parsed", func() {
 				It("returns an error", func() {
-					client := boshio.NewHTTPClient("%%%%%%", 100*time.Millisecond)
+					client := boshio.NewHTTPClient("%%%%%%", waitTime)
 
 					_, err := client.Do(&http.Request{})
 					Expect(err).To(MatchError(ContainSubstring("failed to parse URL")))
