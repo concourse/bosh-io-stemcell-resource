@@ -51,7 +51,7 @@ func main() {
 
 	location := os.Args[1]
 
-	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
+	httpClient := boshio.NewHTTPClient("https://bosh.io", 800*time.Millisecond)
 
 	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
 

@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -194,26 +196,32 @@ func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, 
 	byteRangeHeader := fmt.Sprintf("bytes=%s", byteRange)
 	req.Header.Add("Range", byteRangeHeader)
 
-Retry:
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return []byte{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusPartialContent {
-		return []byte{}, fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
-	}
-
-	var respBytes []byte
-	respBytes, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		if err == io.ErrUnexpectedEOF {
-			goto Retry
+	for {
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return []byte{}, err
 		}
 
-		return []byte{}, err
-	}
+		if resp.StatusCode != http.StatusPartialContent {
+			resp.Body.Close()
+			return []byte{}, fmt.Errorf("failed to download stemcell - boshio returned %d", resp.StatusCode)
+		}
 
-	return respBytes, err
+		var respBytes []byte
+		respBytes, err = ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if err != nil {
+			isEOF := (err == io.ErrUnexpectedEOF)
+			opErr, ok := err.(*net.OpError)
+			isConnectionRefused := (ok && opErr.Err == syscall.ECONNRESET)
+
+			if isConnectionRefused || isEOF {
+				continue
+			}
+
+			return []byte{}, err
+		}
+		return respBytes, nil
+	}
 }
