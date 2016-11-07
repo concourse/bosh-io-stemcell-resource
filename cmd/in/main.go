@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -52,11 +51,7 @@ func main() {
 
 	location := os.Args[1]
 
-	httpClient := boshio.HTTPClient{
-		Host:   "https://bosh.io",
-		Wait:   800 * time.Millisecond,
-		Client: http.DefaultClient,
-	}
+	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
 
 	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -29,11 +28,7 @@ func main() {
 		log.Fatalf("failed reading json: %s", err)
 	}
 
-	httpClient := boshio.HTTPClient{
-		Host:   "https://bosh.io",
-		Wait:   800 * time.Millisecond,
-		Client: http.DefaultClient,
-	}
+	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
 
 	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular)
 	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
