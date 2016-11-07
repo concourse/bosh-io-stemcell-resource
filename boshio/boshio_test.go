@@ -37,7 +37,7 @@ var _ = Describe("Boshio", func() {
 		ranger = &fakes.Ranger{}
 		bar = &fakes.Bar{}
 		forceRegular = false
-		httpClient = boshio.HTTPClient{Host: boshioServer.URL(), Wait: 800 * time.Millisecond, Client: http.DefaultClient}
+		httpClient = boshio.NewHTTPClient(boshioServer.URL(), 800*time.Millisecond)
 		client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
 	})
 
