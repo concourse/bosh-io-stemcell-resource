@@ -30,6 +30,16 @@ const specificVersionRequest = `
 	}
 }`
 
+const oldVersionRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
+	},
+	"version": {
+		"version":"3151"
+	}
+}`
+
 const lightOnlyForceRegularRequest = `
 {
 	"source": {
@@ -112,6 +122,39 @@ var _ = Describe("check", func() {
 
 			Expect(result).NotTo(ContainElement(stemcellVersion{
 				"version": "3262.2",
+			}))
+		})
+	})
+
+	Context("when an older version is specified", func() {
+		var command *exec.Cmd
+
+		BeforeEach(func() {
+			command = exec.Command(boshioCheck)
+			command.Stdin = bytes.NewBufferString(oldVersionRequest)
+		})
+
+		It("that version along with all newer versions", func() {
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
+			result := []stemcellVersion{}
+			err = json.Unmarshal(session.Out.Contents(), &result)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result[0]).To(Equal(stemcellVersion{
+				"version": "3151",
+			}))
+
+			Expect(result[1]).To(Equal(stemcellVersion{
+				"version": "3151.1",
+			}))
+
+			Expect(result).NotTo(ContainElement(stemcellVersion{
+				"version": "3149",
 			}))
 		})
 	})
