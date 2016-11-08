@@ -48,7 +48,7 @@ func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool) *Clien
 		httpClient:           httpClient,
 		Bar:                  b,
 		Ranger:               r,
-		StemcellMetadataPath: "/api/v1/stemcells/%s",
+		StemcellMetadataPath: "/api/v1/stemcells/%s?all=1",
 		ForceRegular:         forceRegular,
 	}
 }
