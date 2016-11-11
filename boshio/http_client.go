@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -17,12 +18,14 @@ func NewHTTPClient(host string, wait time.Duration) HTTPClient {
 				Proxy: http.ProxyFromEnvironment,
 
 				Dial: (&net.Dialer{
-					Timeout:   30 * time.Second,
-					KeepAlive: 0, // don't send keepalive TCP messages
+					Timeout: 30 * time.Second,
+					// The OS determines the number of failed keepalive probes before the connection is closed.
+					// The default is 9 retries on Linux.
+					KeepAlive: 30 * time.Second,
 				}).Dial,
 
 				TLSHandshakeTimeout: 60 * time.Second,
-				DisableKeepAlives:   true,
+				DisableKeepAlives:   true, // don't re-use TCP connections between requests
 			},
 		},
 	}
@@ -49,8 +52,10 @@ func (h HTTPClient) Do(req *http.Request) (*http.Response, error) {
 
 	for {
 		resp, err = h.Client.Do(req)
+
 		if netErr, ok := err.(net.Error); ok {
 			if netErr.Temporary() {
+				fmt.Fprintf(os.Stderr, "Retrying on temporary error: %s", netErr.Error())
 				time.Sleep(h.Wait)
 				continue
 			}

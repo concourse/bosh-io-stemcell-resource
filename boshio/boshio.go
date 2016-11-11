@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -212,11 +211,14 @@ func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, 
 		resp.Body.Close()
 
 		if err != nil {
-			isEOF := (err == io.ErrUnexpectedEOF)
-			opErr, ok := err.(*net.OpError)
-			isConnectionRefused := (ok && opErr.Err == syscall.ECONNRESET)
-
-			if isConnectionRefused || isEOF {
+			if netErr, ok := err.(net.Error); ok {
+				if netErr.Temporary() {
+					fmt.Fprintf(os.Stderr, "Retrying on temporary error: %s", netErr.Error())
+					continue
+				}
+			}
+			if err == io.ErrUnexpectedEOF {
+				fmt.Fprint(os.Stderr, "Retrying after server unexpectly closed connection")
 				continue
 			}
 
