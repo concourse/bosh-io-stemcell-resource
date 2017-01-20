@@ -24,7 +24,18 @@ const versionFamilyRequest = `
 {
 	"source": {
 		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
-		"version_family": "3262.4"
+		"version_family": "3262.latest"
+	},
+	"version": {
+		"version":"3262"
+	}
+}`
+
+const versionFamilyRequestLatest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
+		"version_family": "latest"
 	},
 	"version": {
 		"version":"3262"
@@ -89,31 +100,68 @@ var _ = Describe("check", func() {
 	Context("when a version_family is specified", func() {
 		var command *exec.Cmd
 
-		BeforeEach(func() {
-			command = exec.Command(boshioCheck)
-			command.Stdin = bytes.NewBufferString(versionFamilyRequest)
+		Context("with `3262.latest`", func() {
+			BeforeEach(func() {
+				command = exec.Command(boshioCheck)
+				command.Stdin = bytes.NewBufferString(versionFamilyRequest)
+			})
+
+			It("returns only versions that match the given semver", func() {
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
+
+				result := []stemcellVersion{}
+				err = json.Unmarshal(session.Out.Contents(), &result)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3262.4",
+				}))
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3262.4.1",
+				}))
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3262.5",
+				}))
+				Expect(result).NotTo(ContainElement(stemcellVersion{
+					"version": "3263.14",
+				}))
+			})
 		})
 
-		It("returns only versions that match the given semver", func() {
-			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+		Context("with `latest`", func() {
+			BeforeEach(func() {
+				command = exec.Command(boshioCheck)
+				command.Stdin = bytes.NewBufferString(versionFamilyRequestLatest)
+			})
 
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
+			It("returns only versions that match the given semver", func() {
+				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
 
-			result := []stemcellVersion{}
-			err = json.Unmarshal(session.Out.Contents(), &result)
-			Expect(err).NotTo(HaveOccurred())
+				<-session.Exited
+				Expect(session.ExitCode()).To(Equal(0))
 
-			Expect(result).To(ContainElement(stemcellVersion{
-				"version": "3262.4",
-			}))
-			Expect(result).To(ContainElement(stemcellVersion{
-				"version": "3262.4.1",
-			}))
-			Expect(result).NotTo(ContainElement(stemcellVersion{
-				"version": "3262.5",
-			}))
+				result := []stemcellVersion{}
+				err = json.Unmarshal(session.Out.Contents(), &result)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3262.4",
+				}))
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3262.4.1",
+				}))
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3312.3",
+				}))
+				Expect(result).To(ContainElement(stemcellVersion{
+					"version": "3263.14",
+				}))
+			})
 		})
 	})
 

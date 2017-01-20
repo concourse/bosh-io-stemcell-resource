@@ -15,9 +15,13 @@ resources:
 ## Source Configuration
 
 * `name`: *Required.* The name of the stemcell.
-* `version_family`: *Optional.* A semantic version used to narrow the returned versions, typically used to fetch hotfixes on older stemcells.
-  For example, a `version_family` of `3262` would match `3262`, `3262.1`, and `3262.1.1`, but not `3263`.
-  A `version_family` of `3262.1` would match `3262.1` and `3262.1.1`, but not `3262.2`.
+
+* `version_family`: *Optional.* Default `latest`. A semantic version used to
+narrow the returned versions, typically used to fetch hotfixes on older
+stemcells. For example, a `version_family` of `3262.latest` would match `3262`,
+`3262.1`, and `3262.1.1`, but not `3263`. A `version_family` of `3262.1.latest`
+would match `3262.1` and `3262.1.1`, but not `3262.2`.
+
 * `force_regular`: *Optional.* Default `false`. By default, the resource will always download light stemcells for IaaSes that support light stemcells.
   If `force_regular` is `true`, the resource will ignore light stemcells and always download regular stemcells.
 
