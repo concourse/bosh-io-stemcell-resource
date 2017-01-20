@@ -31,7 +31,7 @@ func (f Filter) Versions() (StemcellVersions, error) {
 	}
 
 	stemcellVersions := f.mapStemcellsToVersions(f.stemcells)
-	if len(f.versionFamily) > 0 {
+	if len(f.versionFamily) > 0 && f.versionFamily != "latest" {
 		var err error
 		stemcellVersions, err = f.filterStemcellsByVersionFamily(stemcellVersions)
 		if err != nil {
@@ -61,13 +61,18 @@ func (f Filter) mapStemcellsToVersions(stemcells []boshio.Stemcell) StemcellVers
 }
 
 func (f Filter) filterStemcellsByVersionFamily(stemcells StemcellVersions) (StemcellVersions, error) {
-	parsedVersion, err := semver.ParseTolerant(f.versionFamily)
+	familyVersion := f.versionFamily
+	if strings.Contains(f.versionFamily, ".latest") {
+		familyVersion = f.versionFamily[0 : len(f.versionFamily)-len(".latest")]
+	}
+
+	parsedVersion, err := semver.ParseTolerant(familyVersion)
 	if err != nil {
 		return StemcellVersions{}, err
 	}
 
 	parsedVersionCeiling := parsedVersion
-	numberOfSignificantDigits := strings.Count(f.versionFamily, ".") + 1
+	numberOfSignificantDigits := strings.Count(familyVersion, ".") + 1
 	switch numberOfSignificantDigits {
 	case 1:
 		parsedVersionCeiling.Major += 1
