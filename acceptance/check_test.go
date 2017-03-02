@@ -274,7 +274,7 @@ var _ = Describe("check", func() {
 			})
 		})
 
-		Context("and only light stemcell versions are available", func() {
+		XContext("and only light stemcell versions are available", func() {
 			var command *exec.Cmd
 
 			BeforeEach(func() {
