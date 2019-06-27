@@ -15,6 +15,7 @@ RUN apk add --update bash tzdata ca-certificates
 COPY --from=builder /assets /opt/resource
 
 FROM resource AS tests
+ENV GOFLAGS -mod=vendor
 COPY --from=builder /tests /tests
 RUN set -e; for test in /tests/*.test; do \
                 $test; \

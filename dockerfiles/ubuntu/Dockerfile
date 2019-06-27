@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /assets /opt/resource
 
 FROM resource AS tests
+ENV GOFLAGS -mod=vendor
 COPY --from=builder /tests /tests
 RUN set -e; for test in /tests/*.test; do \
                 $test; \
