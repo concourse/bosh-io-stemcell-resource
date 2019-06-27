@@ -2,6 +2,7 @@ package acceptance_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/onsi/gomega/gexec"
@@ -18,17 +19,21 @@ var (
 var _ = BeforeSuite(func() {
 	var err error
 
+	Expect(
+		strings.Contains(os.Getenv("GOFLAGS"), "-mod=vendor"),
+	).To(BeTrue(), "GOFLAGS must include `-mod-vendor`")
+
 	if _, err = os.Stat("/opt/resource/check"); err == nil {
 		boshioCheck = "/opt/resource/check"
 	} else {
-		boshioCheck, err = gexec.Build("github.com/concourse/bosh-io-stemcell-resource/cmd/check")
+		boshioCheck, err = gexec.Build("../cmd/check")
 		Expect(err).NotTo(HaveOccurred())
 	}
 
 	if _, err = os.Stat("/opt/resource/in"); err == nil {
 		boshioIn = "/opt/resource/in"
 	} else {
-		boshioIn, err = gexec.Build("github.com/concourse/bosh-io-stemcell-resource/cmd/in")
+		boshioIn, err = gexec.Build("../cmd/in")
 		Expect(err).NotTo(HaveOccurred())
 	}
 })
