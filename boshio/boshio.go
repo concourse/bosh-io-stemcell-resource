@@ -2,6 +2,7 @@ package boshio
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -99,6 +100,11 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 		if err != nil {
 			return err
 		}
+	case "sha256":
+		_, err := metadataFile.Write([]byte(stemcell.Details().SHA256))
+		if err != nil {
+			return err
+		}
 	case "version":
 		_, err := metadataFile.Write([]byte(stemcell.Version))
 		if err != nil {
@@ -173,14 +179,26 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 
 	c.Bar.Finish()
 
-	computedSHA := sha1.New()
-	_, err = io.Copy(computedSHA, stemcellData)
-	if err != nil {
-		return err
-	}
+	if stemcell.Details().SHA256 == "" {
+		computedSHA := sha1.New()
+		_, err = io.Copy(computedSHA, stemcellData)
+		if err != nil {
+			return err
+		}
 
-	if fmt.Sprintf("%x", computedSHA.Sum(nil)) != stemcell.Details().SHA1 {
-		return fmt.Errorf("computed sha1 %x did not match expected sha1 of %s", computedSHA.Sum(nil), stemcell.Details().SHA1)
+		if fmt.Sprintf("%x", computedSHA.Sum(nil)) != stemcell.Details().SHA1 {
+			return fmt.Errorf("computed sha1 %x did not match expected sha1 of %s", computedSHA.Sum(nil), stemcell.Details().SHA1)
+		}
+	} else {
+		computedSHA256 := sha256.New()
+		_, err = io.Copy(computedSHA256, stemcellData)
+		if err != nil {
+			return err
+		}
+
+		if fmt.Sprintf("%x", computedSHA256.Sum(nil)) != stemcell.Details().SHA256 {
+			return fmt.Errorf("computed sha256 %x did not match expected sha256 of %s", computedSHA256.Sum(nil), stemcell.Details().SHA256)
+		}
 	}
 
 	return nil

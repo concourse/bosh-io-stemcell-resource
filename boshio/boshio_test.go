@@ -52,10 +52,11 @@ var _ = Describe("Boshio", func() {
 					Name:    "a stemcell",
 					Version: "some version",
 					Light: &boshio.Metadata{
-						URL:  serverPath("path/to/light-different-stemcell.tgz"),
-						Size: 100,
-						MD5:  "qqqq",
-						SHA1: "2222",
+						URL:    serverPath("path/to/light-different-stemcell.tgz"),
+						Size:   100,
+						MD5:    "qqqq",
+						SHA1:   "2222",
+						SHA256: "4444",
 					},
 				},
 			}))
@@ -125,6 +126,15 @@ var _ = Describe("Boshio", func() {
 			sha1, err := ioutil.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha1)).To(Equal("2222"))
+		})
+
+		It("writes the sha256 to disk", func() {
+			err := client.WriteMetadata(boshio.Stemcell{Regular: &boshio.Metadata{SHA256: "4444"}}, "sha256", fileLocation)
+			Expect(err).NotTo(HaveOccurred())
+
+			sha256, err := ioutil.ReadFile(fileLocation.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(sha256)).To(Equal("4444"))
 		})
 
 		It("writes the version to disk", func() {
@@ -327,6 +337,18 @@ var _ = Describe("Boshio", func() {
 
 				err = client.DownloadStemcell(stubStemcell, location, true)
 				Expect(err).To(MatchError("computed sha1 da39a3ee5e6b4b0d3255bfef95601890afd80709 did not match expected sha1 of 2222"))
+			})
+		})
+
+		Context("when the sha256 cannot be verified", func() {
+			It("returns an error", func() {
+				stubStemcell.Regular.SHA256 = "4444"
+				boshioServer.Start()
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell(stubStemcell, location, true)
+				Expect(err).To(MatchError("computed sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 did not match expected sha256 of 4444"))
 			})
 		})
 

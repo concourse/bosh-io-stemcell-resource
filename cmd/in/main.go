@@ -65,7 +65,7 @@ func main() {
 		log.Fatalf("failed to find stemcell matching version: '%s'\n", inRequest.Version.Version)
 	}
 
-	dataLocations := []string{"version", "sha1", "url"}
+	dataLocations := []string{"version", "sha1", "sha256", "url"}
 
 	for _, name := range dataLocations {
 		fileLocation, err := os.Create(filepath.Join(location, name))
@@ -87,11 +87,19 @@ func main() {
 		}
 	}
 
+	metadata := []concourseMetadataField{
+		{Name: "url", Value: stemcell.Details().URL},
+		{Name: "sha1", Value: stemcell.Details().SHA1},
+	}
+
+	if stemcell.Details().SHA256 != "" {
+		m := concourseMetadataField{Name: "sha256", Value: stemcell.Details().SHA256}
+		metadata = append(metadata, m)
+	}
+
 	json.NewEncoder(os.Stdout).Encode(concourseInResponse{
-		Version: inRequest.Version,
-		Metadata: []concourseMetadataField{
-			{Name: "url", Value: stemcell.Details().URL},
-			{Name: "sha1", Value: stemcell.Details().SHA1},
-		},
-	})
+		Version:  inRequest.Version,
+		Metadata: metadata,
+	},
+	)
 }

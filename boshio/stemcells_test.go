@@ -27,6 +27,26 @@ var _ = Describe("Stemcells", func() {
 			}))
 		})
 
+		It("returns regular stemcell metadata with sha256", func() {
+			stemcell := boshio.Stemcell{
+				Regular: &boshio.Metadata{
+					URL:    "fake-url",
+					Size:   2000,
+					MD5:    "fake-md5",
+					SHA1:   "fake-sha1",
+					SHA256: "fake-sha256",
+				},
+			}
+			metadata := stemcell.Details()
+			Expect(metadata).To(Equal(boshio.Metadata{
+				URL:    "fake-url",
+				Size:   2000,
+				MD5:    "fake-md5",
+				SHA1:   "fake-sha1",
+				SHA256: "fake-sha256",
+			}))
+		})
+
 		It("returns light stemcell metadata", func() {
 			stemcell := boshio.Stemcell{
 				Light: &boshio.Metadata{
