@@ -9,10 +9,11 @@ type Stemcell struct {
 }
 
 type Metadata struct {
-	URL  string
-	Size int64
-	MD5  string
-	SHA1 string
+	URL    string
+	Size   int64
+	MD5    string
+	SHA1   string
+	SHA256 string
 }
 
 func (s Stemcell) Details() Metadata {

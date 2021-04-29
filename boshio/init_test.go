@@ -59,7 +59,7 @@ var _ = BeforeEach(func() {
 		LightAPIHandler:         lightAPIHandler,
 		HeavyAPIHandler:         heavyAPIHandler,
 		HeavyAndLightAPIHandler: heavyAndLightAPIHandler,
-		s: testServer,
+		s:                       testServer,
 	}
 })
 
@@ -100,7 +100,8 @@ func lightAPIHandler(w http.ResponseWriter, req *http.Request) {
 						"url": "%spath/to/light-different-stemcell.tgz",
 						"size": 100,
 						"md5": "qqqq",
-						"sha1": "2222"
+						"sha1": "2222",
+						"sha256": "4444"
 					}
 				}]`, boshioServer.URL())))
 }
@@ -111,7 +112,8 @@ func heavyAPIHandler(w http.ResponseWriter, req *http.Request) {
 						"url": "%spath/to/heavy-different-stemcell.tgz",
 						"size": 2000,
 						"md5": "zzzz",
-						"sha1": "asdf"
+						"sha1": "asdf",
+						"sha256": "qwerty"
 					}
 				}]`, boshioServer.URL())))
 }
@@ -122,13 +124,15 @@ func heavyAndLightAPIHandler(w http.ResponseWriter, req *http.Request) {
 						"url": "%spath/to/heavy-different-stemcell.tgz",
 						"size": 2000,
 						"md5": "zzzz",
-						"sha1": "asdf"
+						"sha1": "asdf",
+						"sha256": "qwerty"
 					},
 					"light": {
 						"url": "%spath/to/light-different-stemcell.tgz",
 						"size": 100,
 						"md5": "qqqq",
-						"sha1": "2222"
+						"sha1": "2222",
+						"sha256": "4444"
 					}
 				}]`, boshioServer.URL(), boshioServer.URL())))
 }
