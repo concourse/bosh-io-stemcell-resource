@@ -15,6 +15,7 @@ type concourseCheck struct {
 	Source struct {
 		Name          string `json:"name"`
 		ForceRegular  bool   `json:"force_regular"`
+		ForceLight  bool     `json:"force_light"`
 		VersionFamily string `json:"version_family"`
 	}
 	Version struct {
@@ -31,7 +32,7 @@ func main() {
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
 
-	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular)
+	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular, checkRequest.Source.ForceLight)
 	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
 	if err != nil {
 		log.Fatalf("failed getting stemcell: %s", err)

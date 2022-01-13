@@ -18,6 +18,7 @@ type concourseInRequest struct {
 	Source struct {
 		Name         string `json:"name"`
 		ForceRegular bool   `json:"force_regular"`
+		ForceLight   bool   `json:"force_light"`
 	} `json:"source"`
 	Params struct {
 		Tarball          bool `json:"tarball"`
@@ -53,7 +54,7 @@ func main() {
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 800*time.Millisecond)
 
-	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
+	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular, inRequest.Source.ForceLight)
 
 	stemcells, err := client.GetStemcells(inRequest.Source.Name)
 	if err != nil {

@@ -25,6 +25,11 @@ would match `3262.1` and `3262.1.1`, but not `3262.2`.
 * `force_regular`: *Optional.* Default `false`. By default, the resource will always download light stemcells for IaaSes that support light stemcells.
   If `force_regular` is `true`, the resource will ignore light stemcells and always download regular stemcells.
 
+* `force_light`: *Optional.* Default `false`. By default, the resource will always download light stemcells for IaaSes
+  that support light stemcells. If `force_light` is `true`, the resource will ignore regular stemcells and always
+  download light stemcells. Without `force_light` set it is possible for a `check` to return a regular stemcell in
+  cases where the regular has been published, but the light version is not yet published.
+
 ## Behavior
 
 ### `check`: Check for new versions of the stemcell.

@@ -240,5 +240,41 @@ var _ = Describe("Stemcells", func() {
 				})
 			})
 		})
+
+		Context("when only regular stemcells are available", func() {
+			BeforeEach(func() {
+				stemcellList = boshio.Stemcells{
+					{
+						Name:    "some-stemcell",
+						Regular: &boshio.Metadata{},
+					},
+				}
+			})
+
+			It("returns all the stemcells", func() {
+				filteredStemcells := stemcellList.FilterByType()
+				expectedStemcells := boshio.Stemcells{
+					{
+						Name:    "some-stemcell",
+						Regular: &boshio.Metadata{},
+					},
+				}
+				Expect(filteredStemcells).To(Equal(expectedStemcells))
+			})
+
+			Context("when force_light is true", func() {
+				BeforeEach(func() {
+					for i := range stemcellList {
+						stemcellList[i].ForceLight = true
+					}
+				})
+
+				It("returns no stemcells", func() {
+					filteredStemcells := stemcellList.FilterByType()
+					expectedStemcells := boshio.Stemcells{}
+					Expect(filteredStemcells).To(Equal(expectedStemcells))
+				})
+			})
+		})
 	})
 })

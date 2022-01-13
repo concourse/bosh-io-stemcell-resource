@@ -62,14 +62,6 @@ const oldVersionRequest = `
 	}
 }`
 
-const lightOnlyForceRegularRequest = `
-{
-	"source": {
-		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
-		"force_regular": true
-	}
-}`
-
 const bothTypesForceRegularRequest = `
 {
 	"source": {
@@ -271,29 +263,6 @@ var _ = Describe("check", func() {
 
 				Expect(result).To(HaveLen(1))
 				Expect(result[0]["version"]).NotTo(BeEmpty())
-			})
-		})
-
-		XContext("and only light stemcell versions are available", func() {
-			var command *exec.Cmd
-
-			BeforeEach(func() {
-				command = exec.Command(boshioCheck)
-				command.Stdin = bytes.NewBufferString(lightOnlyForceRegularRequest)
-			})
-
-			It("returns an empty version set", func() {
-				session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				<-session.Exited
-				Expect(session.ExitCode()).To(Equal(0))
-
-				result := []stemcellVersion{}
-				err = json.Unmarshal(session.Out.Contents(), &result)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(result).To(HaveLen(0))
 			})
 		})
 	})

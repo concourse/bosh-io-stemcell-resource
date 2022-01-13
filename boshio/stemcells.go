@@ -6,6 +6,7 @@ type Stemcell struct {
 	Light        *Metadata `json:"light"`
 	Regular      *Metadata `json:"regular"`
 	ForceRegular bool
+	ForceLight   bool
 }
 
 type Metadata struct {
@@ -36,18 +37,14 @@ func (s Stemcells) FindStemcellByVersion(version string) (Stemcell, bool) {
 }
 
 func (s Stemcells) FilterByType() Stemcells {
-
-	if s.supportsLight() == false {
-		// all stemcells are Regular, no need to filter
-		return s
-	}
-
 	if s.forceRegular() {
 		return s.regularStemcellsOnly()
+	} else if s.forceLight()  {
+		return s.lightStemcellsOnly()
+	} else if s.supportsLight() == false {
+		// all stemcells are Regular, no need to filter
+		return s
 	} else {
-		// The light stemcells might be published several hours after the regular versions
-		// The resource should wait until the corresponding light version is available to avoid
-		// caching a bulky regular stemcell
 		return s.lightStemcellsOnly()
 	}
 }
@@ -79,6 +76,15 @@ func (s Stemcells) filterStemcells(filterFunc func(Stemcell) bool) Stemcells {
 func (s Stemcells) forceRegular() bool {
 	for _, stemcell := range s {
 		if stemcell.ForceRegular {
+			return true
+		}
+	}
+	return false
+}
+
+func (s Stemcells) forceLight() bool {
+	for _, stemcell := range s {
+		if stemcell.ForceLight {
 			return true
 		}
 	}
