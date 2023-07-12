@@ -5,7 +5,6 @@ FROM ${builder_image} as builder
 COPY . /src
 WORKDIR /src
 ENV CGO_ENABLED 0
-ENV GOFLAGS -mod=vendor
 RUN go build -o /assets/out   ./cmd/out
 RUN go build -o /assets/in    ./cmd/in
 RUN go build -o /assets/check ./cmd/check
