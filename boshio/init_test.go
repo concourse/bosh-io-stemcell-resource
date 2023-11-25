@@ -1,10 +1,13 @@
 package boshio_test
 
 import (
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strconv"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,6 +31,7 @@ type server struct {
 	LightAPIHandler         http.HandlerFunc
 	HeavyAPIHandler         http.HandlerFunc
 	HeavyAndLightAPIHandler http.HandlerFunc
+	S3Handler               http.Handler
 	mux                     *http.ServeMux
 	s                       *httptest.Server
 }
@@ -38,6 +42,7 @@ func (s *server) Start() {
 	s.mux.HandleFunc("/api/v1/stemcells/some-light-stemcell", boshioServer.LightAPIHandler)
 	s.mux.HandleFunc("/api/v1/stemcells/some-heavy-stemcell", boshioServer.HeavyAPIHandler)
 	s.mux.HandleFunc("/api/v1/stemcells/some-light-and-heavy-stemcell", boshioServer.HeavyAndLightAPIHandler)
+	s.mux.Handle("/bucket_name/", boshioServer.S3Handler)
 
 	s.s.Start()
 }
@@ -53,12 +58,18 @@ func (s *server) URL() string {
 var _ = BeforeEach(func() {
 	router := http.NewServeMux()
 	testServer := httptest.NewUnstartedServer(router)
+	s3Backend := s3mem.New()
+	fakeS3 := gofakes3.New(s3Backend)
+	s3Backend.CreateBucket("bucket_name")
+	stemcellContent := strings.NewReader("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of..")
+	s3Backend.PutObject("bucket_name", "path/to/heavy-stemcell.tgz", map[string]string{"Last-Modified": "Mon, 2 Jan 2006 15:04:05 GMT"}, stemcellContent, 100)
 	boshioServer = &server{
 		mux:                     router,
 		TarballHandler:          tarballHandler,
 		LightAPIHandler:         lightAPIHandler,
 		HeavyAPIHandler:         heavyAPIHandler,
 		HeavyAndLightAPIHandler: heavyAndLightAPIHandler,
+		S3Handler:               fakeS3.Server(),
 		s:                       testServer,
 	}
 })
