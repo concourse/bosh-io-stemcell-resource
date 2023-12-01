@@ -1,20 +1,23 @@
 package boshio
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"golang.org/x/sync/errgroup"
 )
 
 //go:generate counterfeiter -o ../fakes/bar.go --fake-name Bar . bar
@@ -23,6 +26,11 @@ type bar interface {
 	Add(totalWritten int) int
 	Kickoff()
 	Finish()
+}
+
+type Auth struct {
+	AccessKey string
+	SecretKey string
 }
 
 //go:generate counterfeiter -o ../fakes/ranger.go --fake-name Ranger . ranger
@@ -115,27 +123,41 @@ func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFi
 	return nil
 }
 
-func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool) error {
-	req, err := http.NewRequest("HEAD", stemcell.Details().URL, nil)
-	if err != nil {
-		return fmt.Errorf("failed to construct HEAD request: %s", err)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	stemcellURL := resp.Request.URL.String()
-
-	ranges, err := c.Ranger.BuildRange(resp.ContentLength)
-	if err != nil {
-		return err
-	}
-
+func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFileName bool, auth Auth) error {
+	var contentLength int64
+	var err error
 	stemcellFileName := "stemcell.tgz"
+	stemcellUrl := stemcell.Details().URL
+
 	if preserveFileName {
-		stemcellFileName = filepath.Base(resp.Request.URL.Path)
+		stemcellUrlObject, err := url.Parse(stemcellUrl)
+		if err != nil {
+			return err
+		}
+		stemcellFileName = filepath.Base(stemcellUrlObject.Path)
+	}
+
+	if auth.AccessKey != "" {
+		contentLength, err = c.contentLengthWithAuth(stemcellUrl, auth)
+		if err != nil {
+			return fmt.Errorf("failed to fetch object metadata: %s", err)
+		}
+	} else {
+		req, err := http.NewRequest("HEAD", stemcellUrl, nil)
+		if err != nil {
+			return fmt.Errorf("failed to construct HEAD request: %s", err)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		contentLength = resp.ContentLength
+	}
+
+	ranges, err := c.Ranger.BuildRange(contentLength)
+	if err != nil {
+		return err
 	}
 
 	stemcellData, err := os.Create(filepath.Join(location, stemcellFileName))
@@ -144,7 +166,7 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 	}
 	defer stemcellData.Close()
 
-	c.Bar.SetTotal(int64(resp.ContentLength))
+	c.Bar.SetTotal(contentLength)
 	c.Bar.Kickoff()
 
 	var g errgroup.Group
@@ -153,13 +175,20 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 		g.Go(func() error {
 
 			offset, err := strconv.Atoi(strings.Split(byteRange, "-")[0])
+			offsetEnd, err := strconv.Atoi(strings.Split(byteRange, "-")[1])
+			bytes := offsetEnd - offset + 1
 			if err != nil {
 				return err
 			}
 
-			respBytes, err := c.retryableRequest(stemcellURL, byteRange)
-			if err != nil {
-				return err
+			var respBytes []byte
+			if auth.AccessKey != "" {
+				respBytes, err = c.fetchWithAuth(stemcellUrl, bytes, offset, auth)
+			} else {
+				respBytes, err = c.retryableRequest(stemcellUrl, byteRange)
+				if err != nil {
+					return err
+				}
 			}
 
 			bytesWritten, err := stemcellData.WriteAt(respBytes, int64(offset))
@@ -244,4 +273,53 @@ func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, 
 		}
 		return respBytes, nil
 	}
+}
+
+func (c Client) fetchWithAuth(urlString string, bytes int, offset int, auth Auth) ([]byte, error) {
+	reader, err := c.minioReaderForObject(urlString, auth)
+	if err != nil {
+		return nil, err
+	}
+
+	byteSegment := make([]byte, bytes)
+	_, err = reader.ReadAt(byteSegment, int64(offset))
+	if err != nil {
+		return nil, err
+	}
+
+	return byteSegment, nil
+}
+
+func (c Client) contentLengthWithAuth(urlString string, auth Auth) (int64, error) {
+	reader, err := c.minioReaderForObject(urlString, auth)
+	if err != nil {
+		return 0, err
+	}
+	objectInfo, err := reader.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return objectInfo.Size, nil
+}
+
+func (c Client) minioReaderForObject(urlString string, auth Auth) (*minio.Object, error) {
+	parsedUrl, _ := url.Parse(urlString)
+	pieces := strings.SplitN(parsedUrl.Path, "/", 3)
+	bucket, object := pieces[1], pieces[2]
+
+	minioOptions := &minio.Options{
+		Creds:  credentials.NewStaticV4(auth.AccessKey, auth.SecretKey, ""),
+		Secure: parsedUrl.Scheme == "https",
+	}
+
+	client, err := minio.New(parsedUrl.Host, minioOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := client.GetObject(context.Background(), bucket, object, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return reader, nil
 }

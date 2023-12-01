@@ -26,6 +26,7 @@ func (e EOFReader) Read(p []byte) (int, error) {
 
 var _ = Describe("Boshio", func() {
 	var (
+		auth         boshio.Auth
 		httpClient   boshio.HTTPClient
 		client       *boshio.Client
 		ranger       *fakes.Ranger
@@ -34,6 +35,7 @@ var _ = Describe("Boshio", func() {
 	)
 
 	BeforeEach(func() {
+		auth = boshio.Auth{}
 		ranger = &fakes.Ranger{}
 		bar = &fakes.Bar{}
 		forceRegular = false
@@ -197,7 +199,7 @@ var _ = Describe("Boshio", func() {
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DownloadStemcell(stubStemcell, location, false)
+			err = client.DownloadStemcell(stubStemcell, location, false, auth)
 			Expect(err).NotTo(HaveOccurred())
 
 			content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
@@ -211,13 +213,49 @@ var _ = Describe("Boshio", func() {
 			location, err := ioutil.TempDir("", "")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DownloadStemcell(stubStemcell, location, true)
+			err = client.DownloadStemcell(stubStemcell, location, true, auth)
 			Expect(err).NotTo(HaveOccurred())
 
 			content, err := ioutil.ReadFile(filepath.Join(location, "light-different-stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+		})
+
+		Context("when using auth", func() {
+			BeforeEach(func() {
+				auth = boshio.Auth{
+					AccessKey: "access key",
+					SecretKey: "secret key",
+				}
+			})
+
+			It("writes the stemcell to the provided location", func() {
+				stubStemcell.Regular.URL = serverPath("bucket_name/path/to/heavy-stemcell.tgz")
+				boshioServer.Start()
+				location, err := ioutil.TempDir("", "")
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DownloadStemcell(stubStemcell, location, false, auth)
+				Expect(err).NotTo(HaveOccurred())
+
+				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
+			})
+
+			Context("when the metadata cannot be fetched", func() {
+				BeforeEach(func() {
+					stubStemcell.Regular.URL = serverPath("bucket_name/path/to/nothing.tgz")
+					boshioServer.Start()
+				})
+
+				It("returns an error", func() {
+					err := client.DownloadStemcell(stubStemcell, "", false, auth)
+					Expect(err).To(MatchError(ContainSubstring("failed to fetch object metadata:")))
+				})
+			})
 		})
 	})
 
@@ -275,7 +313,7 @@ var _ = Describe("Boshio", func() {
 					},
 				}
 
-				err = client.DownloadStemcell(stubStemcell, location, false)
+				err = client.DownloadStemcell(stubStemcell, location, false, auth)
 				Expect(err).NotTo(HaveOccurred())
 
 				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
@@ -298,7 +336,7 @@ var _ = Describe("Boshio", func() {
 					},
 				}
 
-				err := client.DownloadStemcell(stubStemcell, "", false)
+				err := client.DownloadStemcell(stubStemcell, "", false, auth)
 				Expect(err).To(MatchError(ContainSubstring("failed to construct HEAD request:")))
 			})
 		})
@@ -308,7 +346,7 @@ var _ = Describe("Boshio", func() {
 				ranger.BuildRangeReturns([]string{}, errors.New("failed to build a range"))
 				boshioServer.Start()
 
-				err := client.DownloadStemcell(stubStemcell, "", true)
+				err := client.DownloadStemcell(stubStemcell, "", true, auth)
 				Expect(err).To(MatchError("failed to build a range"))
 			})
 		})
@@ -324,7 +362,7 @@ var _ = Describe("Boshio", func() {
 				err = location.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell(stubStemcell, location.Name(), true)
+				err = client.DownloadStemcell(stubStemcell, location.Name(), true, auth)
 				Expect(err).To(MatchError(ContainSubstring("not a directory")))
 			})
 		})
@@ -335,7 +373,7 @@ var _ = Describe("Boshio", func() {
 				location, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell(stubStemcell, location, true)
+				err = client.DownloadStemcell(stubStemcell, location, true, auth)
 				Expect(err).To(MatchError("computed sha1 da39a3ee5e6b4b0d3255bfef95601890afd80709 did not match expected sha1 of 2222"))
 			})
 		})
@@ -347,7 +385,7 @@ var _ = Describe("Boshio", func() {
 				location, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell(stubStemcell, location, true)
+				err = client.DownloadStemcell(stubStemcell, location, true, auth)
 				Expect(err).To(MatchError("computed sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 did not match expected sha256 of 4444"))
 			})
 		})
@@ -363,7 +401,7 @@ var _ = Describe("Boshio", func() {
 				location, err := ioutil.TempDir("", "")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = client.DownloadStemcell(stubStemcell, location, true)
+				err = client.DownloadStemcell(stubStemcell, location, true, auth)
 				Expect(err).To(MatchError(ContainSubstring("failed to download stemcell - boshio returned 500")))
 			})
 		})

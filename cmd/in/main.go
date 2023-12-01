@@ -18,6 +18,10 @@ type concourseInRequest struct {
 	Source struct {
 		Name         string `json:"name"`
 		ForceRegular bool   `json:"force_regular"`
+		Auth         struct {
+			AccessKey string `json:"access_key"`
+			SecretKey string `json:"secret_key"`
+		} `json:"auth"`
 	} `json:"source"`
 	Params struct {
 		Tarball          bool `json:"tarball"`
@@ -81,7 +85,7 @@ func main() {
 	}
 
 	if inRequest.Params.Tarball {
-		err = client.DownloadStemcell(stemcell, location, inRequest.Params.PreserveFilename)
+		err = client.DownloadStemcell(stemcell, location, inRequest.Params.PreserveFilename, boshio.Auth(inRequest.Source.Auth))
 		if err != nil {
 			log.Fatalln(err)
 		}
