@@ -205,6 +205,10 @@ var _ = Describe("in", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			<-session.Exited
+			fmt.Println("---------------------------")
+			fmt.Println(session.Err)
+			fmt.Println(session.Out)
+			fmt.Println("---------------------------")
 			Expect(session.ExitCode()).To(Equal(0))
 
 			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
