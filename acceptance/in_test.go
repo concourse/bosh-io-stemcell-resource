@@ -206,8 +206,8 @@ var _ = Describe("in", func() {
 
 			<-session.Exited
 			fmt.Println("---------------------------")
-			fmt.Println(session.Err)
-			fmt.Println(session.Out)
+			fmt.Printf("Error: %v\n", session.Err)
+			fmt.Printf("Output: %v\n", session.Out)
 			fmt.Println("---------------------------")
 			Expect(session.ExitCode()).To(Equal(0))
 
