@@ -115,7 +115,7 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3586.100"},"metadata":[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"b78c60c1bc60d91d798bccc098180167c3c794fe"},{"name":"sha256","value":"e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"}]}`))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"b78c60c1bc60d91d798bccc098180167c3c794fe"},{"name":"sha256","value":"e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"}\]}`))
 
 				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
@@ -175,7 +175,7 @@ var _ = Describe("in", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 				
-				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":[{"name":"url","value":"https://s3.amazonaws.com/bosh-core-stemcells/3586.100/bosh-stemcell-3586.100-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}]}`, string(sha1Checksum), string(sha256Checksum))))
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-core-stemcells/3586.100/bosh-stemcell-3586.100-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
 	})
@@ -307,7 +307,7 @@ var _ = Describe("in", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 				
-				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}]}`, string(sha1Checksum), string(sha256Checksum))))
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
 	})
