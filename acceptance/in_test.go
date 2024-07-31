@@ -200,16 +200,15 @@ var _ = Describe("in", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("downloads the light stemcell with metadata", func() {
+		FIt("downloads the light stemcell with metadata", func() {
+			fmt.Println("boshioIn---------------------")
+			fmt.Println(boshioIn)
+			fmt.Println("---------------------")
+
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
 			<-session.Exited
-			fmt.Println("---------------------------")
-			fmt.Println(string(session.Err.Contents()))
-			fmt.Println("-------------")
-			fmt.Println(string(session.Out.Contents()))
-			fmt.Println("---------------------------")
 			Expect(session.ExitCode()).To(Equal(0))
 
 			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
