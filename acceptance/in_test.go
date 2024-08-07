@@ -43,7 +43,7 @@ const regularStemcellRequest = `
 const bothTypesStemcellRequest = `
 {
 	"source": {
-		"name": "bosh-aws-xen-ubuntu-trusty-go_agent"
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
 	},
 	"version": {
 		"version": "3586.100"
@@ -53,7 +53,7 @@ const bothTypesStemcellRequest = `
 const bothTypesForceRegularStemcellRequest = `
 {
 	"source": {
-		"name": "bosh-aws-xen-ubuntu-trusty-go_agent",
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
 		"force_regular": true
 	},
 	"version": {
@@ -200,11 +200,7 @@ var _ = Describe("in", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		FIt("downloads the light stemcell with metadata", func() {
-			fmt.Println("boshioIn---------------------")
-			fmt.Println(boshioIn)
-			fmt.Println("---------------------")
-
+		It("downloads the light stemcell with metadata", func() {
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 

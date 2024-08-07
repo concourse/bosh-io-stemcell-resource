@@ -2,14 +2,14 @@
 
 Tracks the versions of a stemcell on [bosh.io](https://bosh.io).
 
-For example, to automatically consume `bosh-aws-xen-ubuntu-trusty-go_agent`:
+For example, to automatically consume `bosh-aws-xen-hvm-ubuntu-trusty-go_agent`:
 
 ```yaml
 resources:
 - name: aws-stemcell
   type: bosh-io-stemcell
   source:
-    name: bosh-aws-xen-ubuntu-trusty-go_agent
+    name: bosh-aws-xen-hvm-ubuntu-trusty-go_agent
 ```
 
 ## Source Configuration
