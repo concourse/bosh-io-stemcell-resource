@@ -73,7 +73,7 @@ const lightOnlyForceRegularRequest = `
 const bothTypesForceRegularRequest = `
 {
 	"source": {
-		"name": "bosh-aws-xen-ubuntu-trusty-go_agent",
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
 		"force_regular": true
 	}
 }`

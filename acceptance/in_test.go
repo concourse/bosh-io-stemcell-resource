@@ -3,6 +3,7 @@ package acceptance_test
 import (
 	"bytes"
 	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,7 +26,7 @@ const lightStemcellRequest = `
 		"tarball": false
 	},
 	"version": {
-		"version": "3262.4"
+		"version": "3586.100"
 	}
 }`
 
@@ -35,28 +36,28 @@ const regularStemcellRequest = `
 		"name": "bosh-azure-hyperv-ubuntu-trusty-go_agent"
 	},
 	"version": {
-		"version": "3262.9"
+		"version": "3586.100"
 	}
 }`
 
 const bothTypesStemcellRequest = `
 {
 	"source": {
-		"name": "bosh-aws-xen-ubuntu-trusty-go_agent"
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent"
 	},
 	"version": {
-		"version": "3262.4"
+		"version": "3586.100"
 	}
 }`
 
 const bothTypesForceRegularStemcellRequest = `
 {
 	"source": {
-		"name": "bosh-aws-xen-ubuntu-trusty-go_agent",
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
 		"force_regular": true
 	},
 	"version": {
-		"version": "3262.4"
+		"version": "3586.100"
 	}
 }`
 
@@ -69,7 +70,7 @@ const stemcellRequestWithFileName = `
 		"preserve_filename": true
 	},
 	"version": {
-		"version": "3262.12"
+		"version": "3586.100"
 	}
 }`
 
@@ -114,19 +115,23 @@ var _ = Describe("in", func() {
 
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
-				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3262.4"},"metadata":\[{"name":"url","value":"https://d26ekeud912fhb.cloudfront.net/bosh-stemcell/aws/light-bosh-stemcell-3262.4-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"58b80c916ad523defea9e661045b7fc700a9ec4f"}\]}`))
+				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"b78c60c1bc60d91d798bccc098180167c3c794fe"},{"name":"sha256","value":"e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"}\]}`))
 
 				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(version)).To(Equal("3262.4"))
+				Expect(string(version)).To(Equal("3586.100"))
 
 				url, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(url)).To(Equal("https://d26ekeud912fhb.cloudfront.net/bosh-stemcell/aws/light-bosh-stemcell-3262.4-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
+				Expect(string(url)).To(Equal("https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 
-				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(checksum)).To(Equal("58b80c916ad523defea9e661045b7fc700a9ec4f"))
+				Expect(string(sha1Checksum)).To(Equal("b78c60c1bc60d91d798bccc098180167c3c794fe"))
+
+				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(sha256Checksum)).To(Equal("e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"))
 			})
 		})
 	})
@@ -162,11 +167,15 @@ var _ = Describe("in", func() {
 				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
-				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
+				Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 
-				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3262.9"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-azure-stemcells/bosh-stemcell-3262.9-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"}\]}`, string(checksum))))
-				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
+				
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-core-stemcells/3586.100/bosh-stemcell-3586.100-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
 	})
@@ -201,9 +210,13 @@ var _ = Describe("in", func() {
 			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
-			checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+			Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+
+			sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 
 			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
 			Expect(err).NotTo(HaveOccurred())
@@ -241,9 +254,13 @@ var _ = Describe("in", func() {
 			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
-			checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+			Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+
+			sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 
 			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
 			Expect(err).NotTo(HaveOccurred())
@@ -279,14 +296,18 @@ var _ = Describe("in", func() {
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
 
-				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
+				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
-				checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
-				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3262.12"},"metadata":\[{"name":"url","value":"https://d26ekeud912fhb.cloudfront.net/bosh-stemcell/aws/light-bosh-stemcell-3262.12-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"}\]}`, string(checksum))))
-
+				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
-				Expect(string(checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+				Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
+
+				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
+				
+				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
 	})
