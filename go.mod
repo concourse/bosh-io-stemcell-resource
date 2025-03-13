@@ -8,7 +8,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.64
 	github.com/onsi/ginkgo v1.6.0
 	github.com/onsi/gomega v1.5.0
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.11.0
 	gopkg.in/cheggaaa/pb.v1 v1.0.5
 )
 
@@ -32,10 +32,10 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
