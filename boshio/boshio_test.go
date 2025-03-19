@@ -3,7 +3,6 @@ package boshio_test
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,7 +13,7 @@ import (
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 	"github.com/concourse/bosh-io-stemcell-resource/fakes"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -103,7 +102,7 @@ var _ = Describe("Boshio", func() {
 
 		BeforeEach(func() {
 			var err error
-			fileLocation, err = ioutil.TempFile("", "")
+			fileLocation, err = os.CreateTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -116,7 +115,7 @@ var _ = Describe("Boshio", func() {
 			err := client.WriteMetadata(boshio.Stemcell{Light: &boshio.Metadata{URL: "http://example.com"}}, "url", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
-			url, err := ioutil.ReadFile(fileLocation.Name())
+			url, err := os.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(url)).To(Equal("http://example.com"))
 		})
@@ -125,7 +124,7 @@ var _ = Describe("Boshio", func() {
 			err := client.WriteMetadata(boshio.Stemcell{Regular: &boshio.Metadata{SHA1: "2222"}}, "sha1", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
-			sha1, err := ioutil.ReadFile(fileLocation.Name())
+			sha1, err := os.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha1)).To(Equal("2222"))
 		})
@@ -134,7 +133,7 @@ var _ = Describe("Boshio", func() {
 			err := client.WriteMetadata(boshio.Stemcell{Regular: &boshio.Metadata{SHA256: "4444"}}, "sha256", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
-			sha256, err := ioutil.ReadFile(fileLocation.Name())
+			sha256, err := os.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha256)).To(Equal("4444"))
 		})
@@ -143,7 +142,7 @@ var _ = Describe("Boshio", func() {
 			err := client.WriteMetadata(boshio.Stemcell{Version: "some version", Regular: &boshio.Metadata{}}, "version", fileLocation)
 			Expect(err).NotTo(HaveOccurred())
 
-			version, err := ioutil.ReadFile(fileLocation.Name())
+			version, err := os.ReadFile(fileLocation.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(version)).To(Equal("some version"))
 		})
@@ -196,13 +195,13 @@ var _ = Describe("Boshio", func() {
 
 		It("writes the stemcell to the provided location", func() {
 			boshioServer.Start()
-			location, err := ioutil.TempDir("", "")
+			location, err := os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DownloadStemcell(stubStemcell, location, false, auth)
 			Expect(err).NotTo(HaveOccurred())
 
-			content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
+			content, err := os.ReadFile(filepath.Join(location, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
@@ -210,13 +209,13 @@ var _ = Describe("Boshio", func() {
 
 		It("uses the stemcell filename from bosh.io when the preserveFileName param is set to true", func() {
 			boshioServer.Start()
-			location, err := ioutil.TempDir("", "")
+			location, err := os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DownloadStemcell(stubStemcell, location, true, auth)
 			Expect(err).NotTo(HaveOccurred())
 
-			content, err := ioutil.ReadFile(filepath.Join(location, "light-different-stemcell.tgz"))
+			content, err := os.ReadFile(filepath.Join(location, "light-different-stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
@@ -233,13 +232,13 @@ var _ = Describe("Boshio", func() {
 			It("writes the stemcell to the provided location", func() {
 				stubStemcell.Regular.URL = serverPath("bucket_name/path/to/heavy-stemcell.tgz")
 				boshioServer.Start()
-				location, err := ioutil.TempDir("", "")
+				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DownloadStemcell(stubStemcell, location, false, auth)
 				Expect(err).NotTo(HaveOccurred())
 
-				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
+				content, err := os.ReadFile(filepath.Join(location, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(content)).To(Equal("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of.."))
@@ -291,15 +290,15 @@ var _ = Describe("Boshio", func() {
 
 				responses = []*http.Response{
 					{StatusCode: http.StatusOK, Body: nil, ContentLength: 10, Request: &http.Request{URL: &url.URL{Scheme: "https", Host: "example.com", Path: "hello"}}},
-					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(EOFReader{})},
-					{StatusCode: http.StatusPartialContent, Body: ioutil.NopCloser(strings.NewReader("hello good"))},
+					{StatusCode: http.StatusPartialContent, Body: io.NopCloser(EOFReader{})},
+					{StatusCode: http.StatusPartialContent, Body: io.NopCloser(strings.NewReader("hello good"))},
 				}
 
 				httpErrors = []error{nil, nil, nil}
 
 				client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
 
-				location, err := ioutil.TempDir("", "")
+				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				stubStemcell := boshio.Stemcell{
@@ -316,7 +315,7 @@ var _ = Describe("Boshio", func() {
 				err = client.DownloadStemcell(stubStemcell, location, false, auth)
 				Expect(err).NotTo(HaveOccurred())
 
-				content, err := ioutil.ReadFile(filepath.Join(location, "stemcell.tgz"))
+				content, err := os.ReadFile(filepath.Join(location, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(content)).To(Equal("hello good"))
@@ -354,7 +353,7 @@ var _ = Describe("Boshio", func() {
 		Context("when the stemcell file cannot be created", func() {
 			It("returns an error", func() {
 				boshioServer.Start()
-				location, err := ioutil.TempFile("", "")
+				location, err := os.CreateTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				defer os.RemoveAll(location.Name())
@@ -370,7 +369,7 @@ var _ = Describe("Boshio", func() {
 		Context("when the sha1 cannot be verified", func() {
 			It("returns an error", func() {
 				boshioServer.Start()
-				location, err := ioutil.TempDir("", "")
+				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DownloadStemcell(stubStemcell, location, true, auth)
@@ -382,7 +381,7 @@ var _ = Describe("Boshio", func() {
 			It("returns an error", func() {
 				stubStemcell.Regular.SHA256 = "4444"
 				boshioServer.Start()
-				location, err := ioutil.TempDir("", "")
+				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DownloadStemcell(stubStemcell, location, true, auth)
@@ -398,7 +397,7 @@ var _ = Describe("Boshio", func() {
 				}
 
 				boshioServer.Start()
-				location, err := ioutil.TempDir("", "")
+				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DownloadStemcell(stubStemcell, location, true, auth)

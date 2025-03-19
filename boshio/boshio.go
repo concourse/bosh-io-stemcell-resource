@@ -6,18 +6,17 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
-	"golang.org/x/sync/errgroup"
 	"io"
-	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/sync/errgroup"
 )
 
 //go:generate counterfeiter -o ../fakes/bar.go --fake-name Bar . bar
@@ -76,7 +75,7 @@ func (c *Client) GetStemcells(name string) (Stemcells, error) {
 		return nil, fmt.Errorf("failed fetching metadata - boshio returned: %d", resp.StatusCode)
 	}
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -254,16 +253,10 @@ func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, 
 		}
 
 		var respBytes []byte
-		respBytes, err = ioutil.ReadAll(resp.Body)
+		respBytes, err = io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		if err != nil {
-			if netErr, ok := err.(net.Error); ok {
-				if netErr.Temporary() {
-					fmt.Fprintf(os.Stderr, "Retrying on temporary error: %s", netErr.Error())
-					continue
-				}
-			}
 			if err == io.ErrUnexpectedEOF {
 				fmt.Fprint(os.Stderr, "Retrying after server unexpectly closed connection")
 				continue

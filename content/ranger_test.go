@@ -3,7 +3,7 @@ package content_test
 import (
 	"github.com/concourse/bosh-io-stemcell-resource/content"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
