@@ -1,45 +1,46 @@
 module github.com/concourse/bosh-io-stemcell-resource
 
-go 1.20
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
-	github.com/blang/semver v3.3.0+incompatible
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/johannesboyne/gofakes3 v0.0.0-20230914150226-f005f5cc03aa
-	github.com/minio/minio-go/v7 v7.0.64
-	github.com/onsi/ginkgo v1.6.0
-	github.com/onsi/gomega v1.5.0
-	golang.org/x/sync v0.10.0
-	gopkg.in/cheggaaa/pb.v1 v1.0.5
+	github.com/minio/minio-go/v7 v7.0.88
+	github.com/onsi/ginkgo/v2 v2.23.1
+	github.com/onsi/gomega v1.36.2
+	golang.org/x/sync v0.12.0
+	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
 require (
 	github.com/aws/aws-sdk-go v1.44.256 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
-	github.com/golang/protobuf v1.3.1 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/hpcloud/tail v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
+	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/sha256-simd v1.0.1 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/rs/xid v1.5.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

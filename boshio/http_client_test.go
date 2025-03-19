@@ -2,7 +2,7 @@ package boshio_test
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -52,7 +52,7 @@ var _ = Describe("HTTPClient", func() {
 				receivedRequest = req
 
 				var err error
-				requestBody, err = ioutil.ReadAll(req.Body)
+				requestBody, err = io.ReadAll(req.Body)
 				Expect(err).NotTo(HaveOccurred())
 			}))
 

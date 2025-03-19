@@ -3,7 +3,7 @@ package boshio_test
 import (
 	"github.com/concourse/bosh-io-stemcell-resource/boshio"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

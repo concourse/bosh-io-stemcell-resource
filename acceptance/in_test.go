@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -96,7 +95,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)
@@ -117,19 +116,19 @@ var _ = Describe("in", func() {
 				Expect(session.ExitCode()).To(Equal(0))
 				Expect(session.Out).To(gbytes.Say(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"b78c60c1bc60d91d798bccc098180167c3c794fe"},{"name":"sha256","value":"e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"}\]}`))
 
-				version, err := ioutil.ReadFile(filepath.Join(contentDir, "version"))
+				version, err := os.ReadFile(filepath.Join(contentDir, "version"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(version)).To(Equal("3586.100"))
 
-				url, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
+				url, err := os.ReadFile(filepath.Join(contentDir, "url"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(url)).To(Equal("https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 
-				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				sha1Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha1Checksum)).To(Equal("b78c60c1bc60d91d798bccc098180167c3c794fe"))
 
-				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				sha256Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha256"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha256Checksum)).To(Equal("e03853323c7f5636e78a6322935274ba9acbcd525e967f5e609c3a3fcf3e7ab9"))
 			})
@@ -144,7 +143,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)
@@ -164,17 +163,17 @@ var _ = Describe("in", func() {
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
 
-				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
+				tarballBytes, err := os.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
-				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				sha1Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 
-				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				sha256Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha256"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
-				
+
 				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-core-stemcells/3586.100/bosh-stemcell-3586.100-azure-hyperv-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
@@ -188,7 +187,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)
@@ -207,18 +206,18 @@ var _ = Describe("in", func() {
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
-			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
+			tarballBytes, err := os.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
-			sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			sha1Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha1"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 
-			sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+			sha256Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha256"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 
-			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
+			urlBytes, err := os.ReadFile(filepath.Join(contentDir, "url"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(urlBytes)).To(ContainSubstring("light"))
 		})
@@ -232,7 +231,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)
@@ -251,18 +250,18 @@ var _ = Describe("in", func() {
 			<-session.Exited
 			Expect(session.ExitCode()).To(Equal(0))
 
-			tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
+			tarballBytes, err := os.ReadFile(filepath.Join(contentDir, "stemcell.tgz"))
 			Expect(err).NotTo(HaveOccurred())
 
-			sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+			sha1Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha1"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 
-			sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+			sha256Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha256"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
 
-			urlBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "url"))
+			urlBytes, err := os.ReadFile(filepath.Join(contentDir, "url"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(urlBytes)).NotTo(ContainSubstring("light"))
 		})
@@ -276,7 +275,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)
@@ -296,17 +295,17 @@ var _ = Describe("in", func() {
 				<-session.Exited
 				Expect(session.ExitCode()).To(Equal(0))
 
-				tarballBytes, err := ioutil.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
+				tarballBytes, err := os.ReadFile(filepath.Join(contentDir, "light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"))
 				Expect(err).NotTo(HaveOccurred())
 
-				sha1Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha1"))
+				sha1Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha1"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha1Checksum)).To(Equal(fmt.Sprintf("%x", sha1.Sum(tarballBytes))))
 
-				sha256Checksum, err := ioutil.ReadFile(filepath.Join(contentDir, "sha256"))
+				sha256Checksum, err := os.ReadFile(filepath.Join(contentDir, "sha256"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(sha256Checksum)).To(Equal(fmt.Sprintf("%x", sha256.Sum256(tarballBytes))))
-				
+
 				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
 		})
@@ -320,7 +319,7 @@ var _ = Describe("in", func() {
 
 		BeforeEach(func() {
 			var err error
-			contentDir, err = ioutil.TempDir("", "")
+			contentDir, err = os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 
 			command = exec.Command(boshioIn, contentDir)

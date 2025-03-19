@@ -1,15 +1,16 @@
 package boshio_test
 
 import (
-	"github.com/johannesboyne/gofakes3"
-	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strconv"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"fmt"
