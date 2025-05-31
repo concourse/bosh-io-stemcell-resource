@@ -2,6 +2,10 @@
 
 Tracks the versions of a stemcell on [bosh.io](https://bosh.io).
 
+<a href="https://ci.concourse-ci.org/teams/main/pipelines/resource/jobs/build?vars.type=%22bosh-io-stemcell%22">
+  <img src="https://ci.concourse-ci.org/api/v1/teams/main/pipelines/resource/jobs/build/badge?vars.type=%22bosh-io-stemcell%22" alt="Build Status">
+</a>
+
 For example, to automatically consume `bosh-aws-xen-hvm-ubuntu-trusty-go_agent`:
 
 ```yaml
