@@ -21,7 +21,8 @@ RUN set -e; for pkg in $(go list ./...); do \
     done
 
 FROM ${base_image} AS resource
-COPY --from=builder /assets /opt/resource
+COPY --from=builder assets/ /opt/resource/
+RUN chmod +x /opt/resource/*
 
 FROM resource AS tests
 COPY --from=builder /tests /tests
