@@ -3,5 +3,5 @@ package out
 import "log"
 
 func main() {
-	log.Fatalln("out is not supported via this resource")
+	log.Fatalln("put step is not supported for this resource")
 }
