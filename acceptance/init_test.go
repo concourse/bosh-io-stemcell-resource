@@ -2,7 +2,6 @@ package acceptance_test
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/onsi/gomega/gexec"
@@ -18,10 +17,6 @@ var (
 
 var _ = BeforeSuite(func() {
 	var err error
-
-	Expect(
-		strings.Contains(os.Getenv("GOFLAGS"), "-mod=vendor"),
-	).To(BeTrue(), "GOFLAGS must include `-mod-vendor`")
 
 	if _, err = os.Stat("/opt/resource/check"); err == nil {
 		boshioCheck = "/opt/resource/check"
