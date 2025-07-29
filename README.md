@@ -64,7 +64,6 @@ Fetches a given stemcell, placing the following files in the destination:
   work.
 * docker is *required* - version 17.06.x is tested; earlier versions may also
   work.
-* godep is used for dependency management of the golang packages.
 
 ### Running the tests
 
