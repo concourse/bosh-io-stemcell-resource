@@ -10,7 +10,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.18.0
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
@@ -38,10 +38,10 @@ require (
 	github.com/shabbyrobe/gocovmerge v0.0.0-20190829150210-3e036491d500 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
-	golang.org/x/tools v0.35.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
