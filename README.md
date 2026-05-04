@@ -62,7 +62,7 @@ Fetches a given stemcell, placing the following files in the destination:
 
 * golang is *required* - version 1.9.x is tested; earlier versions may also
   work.
-* docker is *required* - version 17.06.x is tested; earlier versions may also
+* docker is *required* - version 23.x is tested; earlier versions may also
   work.
 
 ### Running the tests
