@@ -31,7 +31,7 @@ func main() {
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 5*time.Minute)
 
-	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular)
+	client := boshio.NewClient(httpClient, nil, nil, checkRequest.Source.ForceRegular, false)
 	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
 	if err != nil {
 		log.Fatalf("failed getting stemcell: %s", err)

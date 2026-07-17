@@ -29,6 +29,8 @@ would match `3262.1` and `3262.1.1`, but not `3262.2`.
 * `force_regular`: *Optional.* Default `false`. By default, the resource will always download light stemcells for IaaSes that support light stemcells.
   If `force_regular` is `true`, the resource will ignore light stemcells and always download regular stemcells.
 
+* `force_light`: *Optional.* Default `false`. When `true`, the resource will fail during `in` if no light stemcell is available for the requested version, rather than silently falling back to the regular stemcell. Has no effect on IaaSes that do not support light stemcells. Useful when a pipeline must guarantee it never inadvertently publishes a heavy stemcell.
+
 * `auth`: *Optional.* These credentials are used when downloading stemcells stored in a protected bucket.
   Has the following sub-properties:
   * `access_key`: *Required.* The HMAC access key

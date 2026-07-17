@@ -48,15 +48,17 @@ type Client struct {
 	Ranger               ranger
 	StemcellMetadataPath string
 	ForceRegular         bool
+	ForceLight           bool
 }
 
-func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool) *Client {
+func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool, forceLight bool) *Client {
 	return &Client{
 		httpClient:           httpClient,
 		Bar:                  b,
 		Ranger:               r,
 		StemcellMetadataPath: "/api/v1/stemcells/%s?all=1",
 		ForceRegular:         forceRegular,
+		ForceLight:           forceLight,
 	}
 }
 
@@ -89,6 +91,12 @@ func (c *Client) GetStemcells(name string) (Stemcells, error) {
 	if c.ForceRegular {
 		for i := 0; i < len(stemcells); i++ {
 			stemcells[i].ForceRegular = true
+		}
+	}
+
+	if c.ForceLight {
+		for i := 0; i < len(stemcells); i++ {
+			stemcells[i].ForceLight = true
 		}
 	}
 

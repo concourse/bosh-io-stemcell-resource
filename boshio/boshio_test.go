@@ -39,7 +39,7 @@ var _ = Describe("Boshio", func() {
 		bar = &fakes.Bar{}
 		forceRegular = false
 		httpClient = boshio.NewHTTPClient(boshioServer.URL(), 800*time.Millisecond)
-		client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
+		client = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
 	})
 
 	Describe("GetStemcells", func() {
@@ -296,7 +296,7 @@ var _ = Describe("Boshio", func() {
 
 				httpErrors = []error{nil, nil, nil}
 
-				client = boshio.NewClient(httpClient, bar, ranger, forceRegular)
+				client = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
 
 				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())

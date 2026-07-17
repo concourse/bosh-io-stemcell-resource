@@ -115,6 +115,35 @@ var _ = Describe("Stemcells", func() {
 		})
 	})
 
+	Describe("Validate", func() {
+		It("returns nil when force_light is false", func() {
+			stemcell := boshio.Stemcell{
+				Version: "1.1",
+				Regular: &boshio.Metadata{URL: "fake-url"},
+			}
+			Expect(stemcell.Validate()).To(Succeed())
+		})
+
+		It("returns nil when force_light is true and a light stemcell is available", func() {
+			stemcell := boshio.Stemcell{
+				Version:    "1.1",
+				ForceLight: true,
+				Light:      &boshio.Metadata{URL: "fake-light-url"},
+				Regular:    &boshio.Metadata{URL: "fake-regular-url"},
+			}
+			Expect(stemcell.Validate()).To(Succeed())
+		})
+
+		It("returns an error when force_light is true and no light stemcell is available", func() {
+			stemcell := boshio.Stemcell{
+				Version:    "1.1",
+				ForceLight: true,
+				Regular:    &boshio.Metadata{URL: "fake-regular-url"},
+			}
+			Expect(stemcell.Validate()).To(MatchError(ContainSubstring("force_light is true but no light stemcell is available for version '1.1'")))
+		})
+	})
+
 	Describe("FindStemcellByVersion", func() {
 		var stemcellList boshio.Stemcells
 
