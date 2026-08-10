@@ -63,7 +63,7 @@ var _ = BeforeEach(func() {
 	fakeS3 := gofakes3.New(s3Backend)
 	s3Backend.CreateBucket("bucket_name")
 	stemcellContent := strings.NewReader("this string is definitely not long enough to be 100 bytes but we get it there with a little bit of..")
-	s3Backend.PutObject("bucket_name", "path/to/heavy-stemcell.tgz", map[string]string{"Last-Modified": "Mon, 2 Jan 2006 15:04:05 GMT"}, stemcellContent, 100)
+	s3Backend.PutObject("bucket_name", "path/to/heavy-stemcell.tgz", map[string]string{"Last-Modified": "Mon, 2 Jan 2006 15:04:05 GMT"}, stemcellContent, 100, nil)
 	boshioServer = &server{
 		mux:                     router,
 		TarballHandler:          tarballHandler,
