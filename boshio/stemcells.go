@@ -1,11 +1,14 @@
 package boshio
 
+import "fmt"
+
 type Stemcell struct {
 	Name         string
 	Version      string
 	Light        *Metadata `json:"light"`
 	Regular      *Metadata `json:"regular"`
 	ForceRegular bool
+	ForceLight   bool
 }
 
 type Metadata struct {
@@ -22,6 +25,15 @@ func (s Stemcell) Details() Metadata {
 	}
 
 	return *s.Regular
+}
+
+// Validate returns an error if the stemcell configuration is inconsistent,
+// e.g. force_light is true but no light stemcell is available for this version.
+func (s Stemcell) Validate() error {
+	if s.ForceLight && s.Light == nil {
+		return fmt.Errorf("force_light is true but no light stemcell is available for version '%s'", s.Version)
+	}
+	return nil
 }
 
 type Stemcells []Stemcell

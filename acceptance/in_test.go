@@ -60,6 +60,34 @@ const bothTypesForceRegularStemcellRequest = `
 	}
 }`
 
+const forceLightWithLightStemcellRequest = `
+{
+	"source": {
+		"name": "bosh-aws-xen-hvm-ubuntu-trusty-go_agent",
+		"force_light": true
+	},
+	"params": {
+		"tarball": false
+	},
+	"version": {
+		"version": "3586.100"
+	}
+}`
+
+const forceLightWithNoLightStemcellRequest = `
+{
+	"source": {
+		"name": "bosh-azure-hyperv-ubuntu-trusty-go_agent",
+		"force_light": true
+	},
+	"params": {
+		"tarball": false
+	},
+	"version": {
+		"version": "3586.100"
+	}
+}`
+
 const stemcellRequestWithFileName = `
 {
 	"source": {
@@ -308,6 +336,69 @@ var _ = Describe("in", func() {
 
 				Expect(session.Out).To(gbytes.Say(fmt.Sprintf(`{"version":{"version":"3586.100"},"metadata":\[{"name":"url","value":"https://s3.amazonaws.com/bosh-aws-light-stemcells/3586.100/light-bosh-stemcell-3586.100-aws-xen-hvm-ubuntu-trusty-go_agent.tgz"},{"name":"sha1","value":"%s"},{"name":"sha256","value":"%s"}\]}`, string(sha1Checksum), string(sha256Checksum))))
 			})
+		})
+	})
+
+	Context("when force_light is true and a light stemcell is available", func() {
+		var (
+			command    *exec.Cmd
+			contentDir string
+		)
+
+		BeforeEach(func() {
+			var err error
+			contentDir, err = os.MkdirTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			command = exec.Command(boshioIn, contentDir)
+			command.Stdin = bytes.NewBufferString(forceLightWithLightStemcellRequest)
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(contentDir)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("succeeds and writes the light stemcell URL", func() {
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(0))
+
+			urlBytes, err := os.ReadFile(filepath.Join(contentDir, "url"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(urlBytes)).To(ContainSubstring("light"))
+		})
+	})
+
+	Context("when force_light is true and no light stemcell is available", func() {
+		var (
+			command    *exec.Cmd
+			contentDir string
+		)
+
+		BeforeEach(func() {
+			var err error
+			contentDir, err = os.MkdirTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			command = exec.Command(boshioIn, contentDir)
+			command.Stdin = bytes.NewBufferString(forceLightWithNoLightStemcellRequest)
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(contentDir)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("fails with a clear error message", func() {
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-session.Exited
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session.Err).To(gbytes.Say("force_light is true but no light stemcell is available"))
 		})
 	})
 

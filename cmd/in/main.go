@@ -18,6 +18,7 @@ type concourseInRequest struct {
 	Source struct {
 		Name         string `json:"name"`
 		ForceRegular bool   `json:"force_regular"`
+		ForceLight   bool   `json:"force_light"`
 		Auth         struct {
 			AccessKey string `json:"access_key"`
 			SecretKey string `json:"secret_key"`
@@ -57,7 +58,10 @@ func main() {
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 800*time.Millisecond)
 
-	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular)
+	client, err := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular, inRequest.Source.ForceLight)
+	if err != nil {
+		log.Fatalf("failed initializing client: %s", err)
+	}
 
 	stemcells, err := client.GetStemcells(inRequest.Source.Name)
 	if err != nil {
@@ -67,6 +71,10 @@ func main() {
 	stemcell, ok := stemcells.FindStemcellByVersion(inRequest.Version.Version)
 	if !ok {
 		log.Fatalf("failed to find stemcell matching version: '%s'\n", inRequest.Version.Version)
+	}
+
+	if err := stemcell.Validate(); err != nil {
+		log.Fatalln(err)
 	}
 
 	dataLocations := []string{"version", "sha1", "sha256", "url"}
