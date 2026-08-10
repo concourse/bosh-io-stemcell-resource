@@ -51,7 +51,11 @@ type Client struct {
 	ForceLight           bool
 }
 
-func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool, forceLight bool) *Client {
+func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool, forceLight bool) (*Client, error) {
+	if forceRegular && forceLight {
+		return nil, fmt.Errorf("cannot set both force_regular and force_light to true")
+	}
+
 	return &Client{
 		httpClient:           httpClient,
 		Bar:                  b,
@@ -59,7 +63,7 @@ func NewClient(httpClient httpClient, b bar, r ranger, forceRegular bool, forceL
 		StemcellMetadataPath: "/api/v1/stemcells/%s?all=1",
 		ForceRegular:         forceRegular,
 		ForceLight:           forceLight,
-	}
+	}, nil
 }
 
 func (c *Client) GetStemcells(name string) (Stemcells, error) {

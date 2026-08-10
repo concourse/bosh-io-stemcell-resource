@@ -34,12 +34,14 @@ var _ = Describe("Boshio", func() {
 	)
 
 	BeforeEach(func() {
+		var err error
 		auth = boshio.Auth{}
 		ranger = &fakes.Ranger{}
 		bar = &fakes.Bar{}
 		forceRegular = false
 		httpClient = boshio.NewHTTPClient(boshioServer.URL(), 800*time.Millisecond)
-		client = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
+		client, err = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("GetStemcells", func() {
@@ -296,7 +298,9 @@ var _ = Describe("Boshio", func() {
 
 				httpErrors = []error{nil, nil, nil}
 
-				client = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
+				var err error
+				client, err = boshio.NewClient(httpClient, bar, ranger, forceRegular, false)
+				Expect(err).ToNot(HaveOccurred())
 
 				location, err := os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
@@ -404,5 +408,10 @@ var _ = Describe("Boshio", func() {
 				Expect(err).To(MatchError(ContainSubstring("failed to download stemcell - boshio returned 500")))
 			})
 		})
+	})
+
+	It("errors when force_regular and force_light are both true", func() {
+		_, err := boshio.NewClient(httpClient, bar, ranger, true, true)
+		Expect(err).To(MatchError("cannot set both force_regular and force_light to true"))
 	})
 })

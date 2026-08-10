@@ -58,7 +58,10 @@ func main() {
 
 	httpClient := boshio.NewHTTPClient("https://bosh.io", 800*time.Millisecond)
 
-	client := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular, inRequest.Source.ForceLight)
+	client, err := boshio.NewClient(httpClient, progress.NewBar(), content.NewRanger(routines), inRequest.Source.ForceRegular, inRequest.Source.ForceLight)
+	if err != nil {
+		log.Fatalf("failed initializing client: %s", err)
+	}
 
 	stemcells, err := client.GetStemcells(inRequest.Source.Name)
 	if err != nil {
