@@ -36,11 +36,34 @@ would match `3262.1` and `3262.1.1`, but not `3262.2`.
   * `access_key`: *Required.* The HMAC access key
   * `secret_key`: *Required.* The HMAC secret key
 
+* `private_bucket`: *Optional.* Discover and download stemcells from an S3-compatible private bucket instead of bosh.io metadata. This is useful for stemcells that are not published through the bosh.io API. Requires `auth`.
+  Has the following sub-properties:
+  * `endpoint`: *Required.* The S3-compatible service endpoint, for example `https://storage.googleapis.com`
+  * `bucket`: *Required.* The bucket containing the stemcell objects
+  * `regexp`: *Required.* A regular expression matched against object names. The first capture group is used as the version, or the named capture group `version` if present.
+
+  For example:
+
+  ```yaml
+  resources:
+  - name: private-stemcell
+    type: bosh-io-stemcell
+    source:
+      name: bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent
+      auth:
+        access_key: ((stemcell_hmac_access_key))
+        secret_key: ((stemcell_hmac_secret_key))
+      private_bucket:
+        endpoint: https://storage.googleapis.com
+        bucket: bosh-core-stemcells-fips
+        regexp: '(?P<version>[^/]+)/bosh-stemcell-[^/]+-aws-xen-hvm-ubuntu-jammy-fips-go_agent\.tgz'
+  ```
+
 ## Behavior
 
 ### `check`: Check for new versions of the stemcell.
 
-Detects new versions of the stemcell that have been published to [bosh.io](https://bosh.io). If no version is specified, `check` returns the latest version, otherwise `check` returns all versions from the version specified on.
+Detects new versions of the stemcell that have been published to [bosh.io](https://bosh.io). If `private_bucket` is configured, detects versions by listing matching objects from that bucket. If no version is specified, `check` returns the latest version, otherwise `check` returns all versions from the version specified on.
 
 
 ### `in`: Fetch a version of the stemcell.
@@ -52,6 +75,8 @@ Fetches a given stemcell, placing the following files in the destination:
 * `sha1`: The SHA1 of the stemcell
 * `sha256`: The SHA256 of the stemcell
 * `stemcell.tgz`: The stemcell tarball, if the `tarball` param is `true`.
+
+When `private_bucket` is configured, `sha1` and `sha256` are computed after downloading the tarball. If `tarball` is `false`, checksum files may be empty because bosh.io metadata is not used.
 
 #### Parameters
 

@@ -13,9 +13,11 @@ import (
 
 type concourseCheck struct {
 	Source struct {
-		Name          string `json:"name"`
-		ForceRegular  bool   `json:"force_regular"`
-		VersionFamily string `json:"version_family"`
+		Name          string               `json:"name"`
+		ForceRegular  bool                 `json:"force_regular"`
+		VersionFamily string               `json:"version_family"`
+		Auth          boshio.Auth          `json:"auth"`
+		PrivateBucket boshio.PrivateBucket `json:"private_bucket"`
 	}
 	Version struct {
 		Version string `json:"version"`
@@ -35,9 +37,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed initializing client: %s", err)
 	}
-	stemcells, err := client.GetStemcells(checkRequest.Source.Name)
-	if err != nil {
-		log.Fatalf("failed getting stemcell: %s", err)
+	var stemcells boshio.Stemcells
+	if checkRequest.Source.PrivateBucket.Configured() {
+		stemcells, err = client.GetPrivateBucketStemcells(checkRequest.Source.Name, checkRequest.Source.PrivateBucket, checkRequest.Source.Auth)
+		if err != nil {
+			log.Fatalf("failed getting stemcell from private bucket: %s", err)
+		}
+	} else {
+		stemcells, err = client.GetStemcells(checkRequest.Source.Name)
+		if err != nil {
+			log.Fatalf("failed getting stemcell: %s", err)
+		}
 	}
 
 	stemcells = stemcells.FilterByType()

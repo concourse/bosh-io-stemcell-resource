@@ -99,6 +99,52 @@ var _ = Describe("Boshio", func() {
 		})
 	})
 
+	Describe("GetPrivateBucketStemcells", func() {
+		var privateBucket boshio.PrivateBucket
+
+		BeforeEach(func() {
+			auth = boshio.Auth{
+				AccessKey: "access key",
+				SecretKey: "secret key",
+			}
+			privateBucket = boshio.PrivateBucket{
+				Endpoint: boshioServer.URL(),
+				Bucket:   "bucket_name",
+				Regexp:   `path/to/bosh-stemcell-(.*)-aws-xen-hvm-ubuntu-jammy-fips-go_agent\.tgz`,
+			}
+		})
+
+		It("discovers stemcells matching the configured object regexp", func() {
+			boshioServer.Start()
+
+			stemcells, err := client.GetPrivateBucketStemcells("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent", privateBucket, auth)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(stemcells).To(HaveLen(1))
+			Expect(stemcells[0].Name).To(Equal("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent"))
+			Expect(stemcells[0].Version).To(Equal("1.1332"))
+			Expect(stemcells[0].Regular.URL).To(Equal(serverPath("bucket_name/path/to/bosh-stemcell-1.1332-aws-xen-hvm-ubuntu-jammy-fips-go_agent.tgz")))
+		})
+
+		It("supports a named version capture group", func() {
+			privateBucket.Regexp = `path/to/bosh-stemcell-(?P<version>.*)-aws-xen-hvm-ubuntu-jammy-fips-go_agent\.tgz`
+			boshioServer.Start()
+
+			stemcells, err := client.GetPrivateBucketStemcells("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent", privateBucket, auth)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(stemcells).To(HaveLen(1))
+			Expect(stemcells[0].Version).To(Equal("1.1332"))
+		})
+
+		It("returns an error if the regexp has no version capture group", func() {
+			privateBucket.Regexp = `.*bosh-stemcell.*`
+
+			_, err := client.GetPrivateBucketStemcells("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent", privateBucket, auth)
+			Expect(err).To(MatchError("private_bucket regexp must include a version capture group"))
+		})
+	})
+
 	Describe("WriteMetadata", func() {
 		var fileLocation *os.File
 
@@ -170,6 +216,39 @@ var _ = Describe("Boshio", func() {
 					Expect(err).To(MatchError("explosions"))
 				})
 			})
+		})
+	})
+
+	Describe("DownloadPrivateBucketStemcell", func() {
+		BeforeEach(func() {
+			auth = boshio.Auth{
+				AccessKey: "access key",
+				SecretKey: "secret key",
+			}
+			ranger.BuildRangeReturns([]string{"0-28"}, nil)
+		})
+
+		It("downloads the private bucket object and returns computed checksums", func() {
+			boshioServer.Start()
+			location, err := os.MkdirTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+
+			stemcell := boshio.Stemcell{
+				Name:    "bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent",
+				Version: "1.1332",
+				Regular: &boshio.Metadata{
+					URL: serverPath("bucket_name/path/to/bosh-stemcell-1.1332-aws-xen-hvm-ubuntu-jammy-fips-go_agent.tgz"),
+				},
+			}
+
+			metadata, err := client.DownloadPrivateBucketStemcell(stemcell, location, false, auth)
+			Expect(err).NotTo(HaveOccurred())
+
+			content, err := os.ReadFile(filepath.Join(location, "stemcell.tgz"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(content)).To(Equal("private fips stemcell content"))
+			Expect(metadata.SHA1).To(Equal("f0cb8ea65a0bcd71077f8be109fbcfd360e1e112"))
+			Expect(metadata.SHA256).To(Equal("a10e889a1dd88de9627bc8e00dbf11ccc1c49b73e6bd7d2c6e9f8cd63c16e231"))
 		})
 	})
 
