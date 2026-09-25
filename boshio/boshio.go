@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -27,9 +28,28 @@ type bar interface {
 	Finish()
 }
 
+type progressWriter struct {
+	bar bar
+}
+
+func (w progressWriter) Write(p []byte) (int, error) {
+	w.bar.Add(len(p))
+	return len(p), nil
+}
+
 type Auth struct {
-	AccessKey string
-	SecretKey string
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+}
+
+type PrivateBucket struct {
+	Endpoint string `json:"endpoint"`
+	Bucket   string `json:"bucket"`
+	Regexp   string `json:"regexp"`
+}
+
+func (b PrivateBucket) Configured() bool {
+	return b.Endpoint != "" || b.Bucket != "" || b.Regexp != ""
 }
 
 //go:generate counterfeiter -o ../fakes/ranger.go --fake-name Ranger . ranger
@@ -105,6 +125,85 @@ func (c *Client) GetStemcells(name string) (Stemcells, error) {
 	}
 
 	return stemcells, nil
+}
+
+func (c *Client) GetPrivateBucketStemcells(name string, privateBucket PrivateBucket, auth Auth) (Stemcells, error) {
+	if privateBucket.Endpoint == "" {
+		return nil, fmt.Errorf("private_bucket endpoint is required")
+	}
+	if privateBucket.Bucket == "" {
+		return nil, fmt.Errorf("private_bucket bucket is required")
+	}
+	if privateBucket.Regexp == "" {
+		return nil, fmt.Errorf("private_bucket regexp is required")
+	}
+	if auth.AccessKey == "" || auth.SecretKey == "" {
+		return nil, fmt.Errorf("auth access_key and secret_key are required for private_bucket")
+	}
+
+	objectRegexp, err := regexp.Compile(privateBucket.Regexp)
+	if err != nil {
+		return nil, err
+	}
+
+	versionIndex := privateBucketVersionIndex(objectRegexp)
+	if versionIndex == -1 {
+		return nil, fmt.Errorf("private_bucket regexp must include a version capture group")
+	}
+
+	minioClient, err := c.minioClientForEndpoint(privateBucket.Endpoint, auth)
+	if err != nil {
+		return nil, err
+	}
+
+	stemcells := Stemcells{}
+	for object := range minioClient.ListObjects(context.Background(), privateBucket.Bucket, minio.ListObjectsOptions{Recursive: true}) {
+		if object.Err != nil {
+			return nil, object.Err
+		}
+
+		matches := objectRegexp.FindStringSubmatch(object.Key)
+		if matches == nil || matches[0] != object.Key {
+			continue
+		}
+
+		stemcells = append(stemcells, Stemcell{
+			Name:       name,
+			Version:    matches[versionIndex],
+			ForceLight: c.ForceLight,
+			Regular: &Metadata{
+				URL:  privateBucket.URLForObject(object.Key),
+				Size: object.Size,
+				MD5:  strings.Trim(object.ETag, "\""),
+			},
+		})
+	}
+
+	return stemcells, nil
+}
+
+func privateBucketVersionIndex(objectRegexp *regexp.Regexp) int {
+	for index, name := range objectRegexp.SubexpNames() {
+		if name == "version" {
+			return index
+		}
+	}
+
+	if objectRegexp.NumSubexp() > 0 {
+		return 1
+	}
+
+	return -1
+}
+
+func (b PrivateBucket) URLForObject(object string) string {
+	objectURL, err := url.Parse(b.Endpoint)
+	if err != nil {
+		return ""
+	}
+
+	objectURL.Path = strings.TrimRight(objectURL.Path, "/") + "/" + strings.TrimLeft(b.Bucket+"/"+object, "/")
+	return objectURL.String()
 }
 
 func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFile io.Writer) error {
@@ -244,6 +343,56 @@ func (c *Client) DownloadStemcell(stemcell Stemcell, location string, preserveFi
 	return nil
 }
 
+func (c *Client) DownloadPrivateBucketStemcell(stemcell Stemcell, location string, preserveFileName bool, auth Auth) (Metadata, error) {
+	stemcellFileName := "stemcell.tgz"
+	stemcellURL := stemcell.Details().URL
+
+	if preserveFileName {
+		stemcellURLObject, err := url.Parse(stemcellURL)
+		if err != nil {
+			return Metadata{}, err
+		}
+		stemcellFileName = filepath.Base(stemcellURLObject.Path)
+	}
+
+	reader, err := c.minioReaderForObject(stemcellURL, auth)
+	if err != nil {
+		return Metadata{}, fmt.Errorf("failed to fetch object: %s", err)
+	}
+	defer reader.Close()
+
+	objectInfo, err := reader.Stat()
+	if err != nil {
+		return Metadata{}, fmt.Errorf("failed to fetch object metadata: %s", err)
+	}
+	contentLength := objectInfo.Size
+
+	c.Bar.SetTotal(contentLength)
+	c.Bar.Kickoff()
+
+	stemcellData, err := os.Create(filepath.Join(location, stemcellFileName))
+	if err != nil {
+		return Metadata{}, err
+	}
+	defer stemcellData.Close()
+
+	computedSHA1 := sha1.New()
+	computedSHA256 := sha256.New()
+	_, err = io.Copy(io.MultiWriter(stemcellData, computedSHA1, computedSHA256, progressWriter{bar: c.Bar}), reader)
+
+	c.Bar.Finish()
+	if err != nil {
+		return Metadata{}, err
+	}
+
+	metadata := stemcell.Details()
+	metadata.Size = contentLength
+	metadata.SHA1 = fmt.Sprintf("%x", computedSHA1.Sum(nil))
+	metadata.SHA256 = fmt.Sprintf("%x", computedSHA256.Sum(nil))
+
+	return metadata, nil
+}
+
 func (c Client) retryableRequest(stemcellURL string, byteRange string) ([]byte, error) {
 	req, err := http.NewRequest("GET", stemcellURL, nil)
 	if err != nil {
@@ -311,13 +460,7 @@ func (c Client) minioReaderForObject(urlString string, auth Auth) (*minio.Object
 	parsedUrl, _ := url.Parse(urlString)
 	pieces := strings.SplitN(parsedUrl.Path, "/", 3)
 	bucket, object := pieces[1], pieces[2]
-
-	minioOptions := &minio.Options{
-		Creds:  credentials.NewStaticV4(auth.AccessKey, auth.SecretKey, ""),
-		Secure: parsedUrl.Scheme == "https",
-	}
-
-	client, err := minio.New(parsedUrl.Host, minioOptions)
+	client, err := c.minioClientForEndpoint(fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host), auth)
 	if err != nil {
 		return nil, err
 	}
@@ -327,4 +470,18 @@ func (c Client) minioReaderForObject(urlString string, auth Auth) (*minio.Object
 		return nil, err
 	}
 	return reader, nil
+}
+
+func (c Client) minioClientForEndpoint(endpoint string, auth Auth) (*minio.Client, error) {
+	parsedEndpoint, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	minioOptions := &minio.Options{
+		Creds:  credentials.NewStaticV4(auth.AccessKey, auth.SecretKey, ""),
+		Secure: parsedEndpoint.Scheme == "https",
+	}
+
+	return minio.New(parsedEndpoint.Host, minioOptions)
 }

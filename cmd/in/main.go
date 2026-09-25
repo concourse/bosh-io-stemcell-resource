@@ -16,13 +16,11 @@ const routines = 10
 
 type concourseInRequest struct {
 	Source struct {
-		Name         string `json:"name"`
-		ForceRegular bool   `json:"force_regular"`
-		ForceLight   bool   `json:"force_light"`
-		Auth         struct {
-			AccessKey string `json:"access_key"`
-			SecretKey string `json:"secret_key"`
-		} `json:"auth"`
+		Name          string               `json:"name"`
+		ForceRegular  bool                 `json:"force_regular"`
+		ForceLight    bool                 `json:"force_light"`
+		Auth          boshio.Auth          `json:"auth"`
+		PrivateBucket boshio.PrivateBucket `json:"private_bucket"`
 	} `json:"source"`
 	Params struct {
 		Tarball          bool `json:"tarball"`
@@ -63,9 +61,17 @@ func main() {
 		log.Fatalf("failed initializing client: %s", err)
 	}
 
-	stemcells, err := client.GetStemcells(inRequest.Source.Name)
-	if err != nil {
-		log.Fatalln(err)
+	var stemcells boshio.Stemcells
+	if inRequest.Source.PrivateBucket.Configured() {
+		stemcells, err = client.GetPrivateBucketStemcells(inRequest.Source.Name, inRequest.Source.PrivateBucket, inRequest.Source.Auth)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		stemcells, err = client.GetStemcells(inRequest.Source.Name)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	stemcell, ok := stemcells.FindStemcellByVersion(inRequest.Version.Version)
@@ -77,7 +83,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	dataLocations := []string{"version", "sha1", "sha256", "url"}
+	dataLocations := []string{"version", "url"}
+	if !inRequest.Source.PrivateBucket.Configured() || !inRequest.Params.Tarball {
+		dataLocations = append(dataLocations, "sha1", "sha256")
+	}
 
 	for _, name := range dataLocations {
 		fileLocation, err := os.Create(filepath.Join(location, name))
@@ -93,9 +102,30 @@ func main() {
 	}
 
 	if inRequest.Params.Tarball {
-		err = client.DownloadStemcell(stemcell, location, inRequest.Params.PreserveFilename, boshio.Auth(inRequest.Source.Auth))
-		if err != nil {
-			log.Fatalln(err)
+		if inRequest.Source.PrivateBucket.Configured() {
+			metadata, err := client.DownloadPrivateBucketStemcell(stemcell, location, inRequest.Params.PreserveFilename, inRequest.Source.Auth)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			stemcell.Regular.SHA1 = metadata.SHA1
+			stemcell.Regular.SHA256 = metadata.SHA256
+			for _, name := range []string{"sha1", "sha256"} {
+				fileLocation, err := os.Create(filepath.Join(location, name))
+				if err != nil {
+					log.Fatalln(err)
+				}
+				defer fileLocation.Close()
+
+				err = client.WriteMetadata(stemcell, name, fileLocation)
+				if err != nil {
+					log.Fatalln(err)
+				}
+			}
+		} else {
+			err = client.DownloadStemcell(stemcell, location, inRequest.Params.PreserveFilename, inRequest.Source.Auth)
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}
 	}
 
