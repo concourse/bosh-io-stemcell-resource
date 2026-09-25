@@ -137,11 +137,36 @@ var _ = Describe("Boshio", func() {
 			Expect(stemcells[0].Version).To(Equal("1.1332"))
 		})
 
+		It("preserves force_light on discovered stemcells", func() {
+			var err error
+			client, err = boshio.NewClient(httpClient, bar, ranger, false, true)
+			Expect(err).ToNot(HaveOccurred())
+			boshioServer.Start()
+
+			stemcells, err := client.GetPrivateBucketStemcells("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent", privateBucket, auth)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(stemcells).To(HaveLen(1))
+			Expect(stemcells[0].ForceLight).To(BeTrue())
+			Expect(stemcells[0].Validate()).To(MatchError("force_light is true but no light stemcell is available for version '1.1332'"))
+		})
+
 		It("returns an error if the regexp has no version capture group", func() {
 			privateBucket.Regexp = `.*bosh-stemcell.*`
 
 			_, err := client.GetPrivateBucketStemcells("bosh-aws-xen-hvm-ubuntu-jammy-fips-go_agent", privateBucket, auth)
 			Expect(err).To(MatchError("private_bucket regexp must include a version capture group"))
+		})
+	})
+
+	Describe("URLForObject", func() {
+		It("constructs an escaped object URL", func() {
+			privateBucket := boshio.PrivateBucket{
+				Endpoint: "https://storage.googleapis.com/",
+				Bucket:   "bucket_name",
+			}
+
+			Expect(privateBucket.URLForObject("path/to/stemcell with space.tgz")).To(Equal("https://storage.googleapis.com/bucket_name/path/to/stemcell%20with%20space.tgz"))
 		})
 	})
 

@@ -168,8 +168,9 @@ func (c *Client) GetPrivateBucketStemcells(name string, privateBucket PrivateBuc
 		}
 
 		stemcells = append(stemcells, Stemcell{
-			Name:    name,
-			Version: matches[versionIndex],
+			Name:       name,
+			Version:    matches[versionIndex],
+			ForceLight: c.ForceLight,
 			Regular: &Metadata{
 				URL:  privateBucket.URLForObject(object.Key),
 				Size: object.Size,
@@ -196,7 +197,13 @@ func privateBucketVersionIndex(objectRegexp *regexp.Regexp) int {
 }
 
 func (b PrivateBucket) URLForObject(object string) string {
-	return fmt.Sprintf("%s/%s/%s", strings.TrimRight(b.Endpoint, "/"), b.Bucket, object)
+	objectURL, err := url.Parse(b.Endpoint)
+	if err != nil {
+		return ""
+	}
+
+	objectURL.Path = strings.TrimRight(objectURL.Path, "/") + "/" + strings.TrimLeft(b.Bucket+"/"+object, "/")
+	return objectURL.String()
 }
 
 func (c *Client) WriteMetadata(stemcell Stemcell, metadataKey string, metadataFile io.Writer) error {
